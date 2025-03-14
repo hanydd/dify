@@ -9,6 +9,7 @@
     "dev": "cross-env NODE_OPTIONS='--inspect' next dev",
     "build": "next build",
     "start": "cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public && cross-env PORT=$npm_config_port HOSTNAME=$npm_config_host node .next/standalone/server.js",
+    "winstart": "xcopy .next\\static .next\\standalone\\.next\\static /E /I /Y && xcopy public .next\\standalone\\public /E /I /Y && cross-env PORT=3000 HOSTNAME=0.0.0.0 node .next/standalone/server.js",
     "lint": "pnpm eslint",
     "fix": "next lint --fix",
     "eslint-fix": "eslint --fix",
