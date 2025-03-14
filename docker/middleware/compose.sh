@@ -1,0 +1,1 @@
+docker compose -f docker-compose.middleware.yaml --profile weaviate -p dify_middleware up -d
