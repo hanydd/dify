@@ -14,7 +14,7 @@ from constants.languages import languages
 from events.tenant_event import tenant_was_created
 from extensions.ext_database import db
 from libs.helper import extract_remote_ip
-from libs.oauth import GitHubOAuth, GoogleOAuth, OAuthUserInfo
+from libs.oauth import GitHubOAuth, GoogleOAuth, OAuthUserInfo, CbrainOAuth
 from models import Account
 from models.account import AccountStatus
 from services.account_service import AccountService, RegisterService, TenantService
@@ -44,7 +44,10 @@ def get_oauth_providers():
                 redirect_uri=dify_config.CONSOLE_API_URL + "/console/api/oauth/authorize/google",
             )
 
-        OAUTH_PROVIDERS = {"github": github_oauth, "google": google_oauth}
+        cbrain_oauth = CbrainOAuth(client_id="", client_secret="",
+                                   redirect_uri=dify_config.CONSOLE_API_URL+ "/console/api/oauth/authorize/cbrain")
+
+        OAUTH_PROVIDERS = {"github": github_oauth, "google": google_oauth, "cbrain": cbrain_oauth}
         return OAUTH_PROVIDERS
 
 
@@ -70,6 +73,7 @@ class OAuthCallback(Resource):
             return {"error": "Invalid provider"}, 400
 
         code = request.args.get("code")
+        tenant = request.args.get("tenant")
         state = request.args.get("state")
         invite_token = None
         if state:
@@ -77,7 +81,7 @@ class OAuthCallback(Resource):
 
         try:
             token = oauth_provider.get_access_token(code)
-            user_info = oauth_provider.get_user_info(token)
+            user_info = oauth_provider.get_user_info(token, tenant=tenant)
         except requests.exceptions.RequestException as e:
             error_text = e.response.text if e.response else str(e)
             logging.exception(f"An error occurred during the OAuth process with {provider}: {error_text}")

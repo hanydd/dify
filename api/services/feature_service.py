@@ -64,14 +64,14 @@ class SystemFeatureModel(BaseModel):
     sso_enforced_for_signin_protocol: str = ""
     sso_enforced_for_web: bool = False
     sso_enforced_for_web_protocol: str = ""
-    enable_web_sso_switch_component: bool = False
+    enable_web_sso_switch_component: bool = True
     enable_marketplace: bool = False
     max_plugin_package_size: int = dify_config.PLUGIN_MAX_PACKAGE_SIZE
     enable_email_code_login: bool = False
     enable_email_password_login: bool = True
-    enable_social_oauth_login: bool = False
-    is_allow_register: bool = False
-    is_allow_create_workspace: bool = False
+    enable_social_oauth_login: bool = True
+    is_allow_register: bool = True
+    is_allow_create_workspace: bool = True
     is_email_setup: bool = False
     license: LicenseModel = LicenseModel()
 
@@ -119,7 +119,7 @@ class FeatureService:
         system_features.enable_email_code_login = dify_config.ENABLE_EMAIL_CODE_LOGIN
         system_features.enable_email_password_login = dify_config.ENABLE_EMAIL_PASSWORD_LOGIN
         system_features.enable_social_oauth_login = dify_config.ENABLE_SOCIAL_OAUTH_LOGIN
-        system_features.is_allow_register = dify_config.ALLOW_REGISTER
+        system_features.is_allow_register = True
         system_features.is_allow_create_workspace = dify_config.ALLOW_CREATE_WORKSPACE
         system_features.is_email_setup = dify_config.MAIL_TYPE is not None and dify_config.MAIL_TYPE != ""
 
@@ -190,12 +190,6 @@ class FeatureService:
 
         if "enable_email_password_login" in enterprise_info:
             features.enable_email_password_login = enterprise_info["enable_email_password_login"]
-
-        if "is_allow_register" in enterprise_info:
-            features.is_allow_register = enterprise_info["is_allow_register"]
-
-        if "is_allow_create_workspace" in enterprise_info:
-            features.is_allow_create_workspace = enterprise_info["is_allow_create_workspace"]
 
         if "license" in enterprise_info:
             license_info = enterprise_info["license"]

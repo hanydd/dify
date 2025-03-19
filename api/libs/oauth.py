@@ -24,15 +24,40 @@ class OAuth:
     def get_access_token(self, code: str):
         raise NotImplementedError()
 
-    def get_raw_user_info(self, token: str):
+    def get_raw_user_info(self, token: str, **kwargs):
         raise NotImplementedError()
 
-    def get_user_info(self, token: str) -> OAuthUserInfo:
-        raw_info = self.get_raw_user_info(token)
+    def get_user_info(self, token: str, **kwargs) -> OAuthUserInfo:
+        raw_info = self.get_raw_user_info(token, **kwargs)
         return self._transform_user_info(raw_info)
 
     def _transform_user_info(self, raw_info: dict) -> OAuthUserInfo:
         raise NotImplementedError()
+
+
+class CbrainOAuth(OAuth):
+    _USER_INFO_URL = "http://180.168.3.12:9100/cbrain-gateway/cbrain-portal-server/application/userLogin/userInfo"
+
+    def get_authorization_url(self, invite_token: Optional[str] = None):
+        pass
+
+    def get_access_token(self, code: str):
+        print("get_access_token", code)
+        return code
+
+    def get_raw_user_info(self, token: str, **kwargs):
+        print("get_raw_user_info", token, kwargs)
+        headers = {"Authorization": f"Bearer {token}", "environment": kwargs.get("tenant")}
+        response = requests.post(self._USER_INFO_URL, headers=headers)
+        print(response.status_code)
+        response_json = response.json()
+        print(response_json)
+        return response_json.get("data")
+
+    def _transform_user_info(self, raw_info: dict) -> OAuthUserInfo:
+        print("_transform_user_info", raw_info)
+        email = raw_info["currentUserId"] + "@dify.comnova.com"
+        return OAuthUserInfo(id=raw_info["currentUserId"], name=raw_info["userName"], email=email)
 
 
 class GitHubOAuth(OAuth):
@@ -69,7 +94,7 @@ class GitHubOAuth(OAuth):
 
         return access_token
 
-    def get_raw_user_info(self, token: str):
+    def get_raw_user_info(self, token: str, **kwargs):
         headers = {"Authorization": f"token {token}"}
         response = requests.get(self._USER_INFO_URL, headers=headers)
         response.raise_for_status()
@@ -123,7 +148,7 @@ class GoogleOAuth(OAuth):
 
         return access_token
 
-    def get_raw_user_info(self, token: str):
+    def get_raw_user_info(self, token: str, **kwargs):
         headers = {"Authorization": f"Bearer {token}"}
         response = requests.get(self._USER_INFO_URL, headers=headers)
         response.raise_for_status()
