@@ -1,7 +1,7 @@
 language_timezone_mapping = {
-    "en-US": "America/New_York",
+    "en-US": "Asia/Shanghai",
     "zh-Hans": "Asia/Shanghai",
-    "zh-Hant": "Asia/Taipei",
+    "zh-Hant": "Asia/Shanghai",
     "pt-BR": "America/Sao_Paulo",
     "es-ES": "Europe/Madrid",
     "fr-FR": "Europe/Paris",
