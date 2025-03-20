@@ -4,6 +4,8 @@ from typing import Optional
 
 import requests
 
+from configs import dify_config
+
 
 @dataclass
 class OAuthUserInfo:
@@ -36,20 +38,23 @@ class OAuth:
 
 
 class CbrainOAuth(OAuth):
-    _USER_INFO_URL = "http://180.168.3.12:9100/cbrain-gateway/cbrain-portal-server/application/userLogin/userInfo"
+    _CBRAIN_BASE_URL = dify_config.CBRAIN_BASE_URL
+    _USER_INFO_URL = dify_config.CBRAIN_USER_INFO_URL
 
     def get_authorization_url(self, invite_token: Optional[str] = None):
         pass
 
     def get_access_token(self, code: str):
-        print("get_access_token", code)
         return code
 
     def get_raw_user_info(self, token: str, **kwargs):
-        print("get_raw_user_info", token, kwargs)
+        base_url = kwargs.get("host", self._CBRAIN_BASE_URL)
+        has_protocol = bool(urllib.parse.urlparse(base_url).scheme)
+        if  not has_protocol:
+            base_url = "http://" + base_url
+        user_info_url = urllib.parse.urljoin(base_url, self._USER_INFO_URL)
         headers = {"Authorization": f"Bearer {token}", "environment": kwargs.get("tenant")}
-        response = requests.post(self._USER_INFO_URL, headers=headers)
-        print(response.status_code)
+        response = requests.post(user_info_url, headers=headers)
         response_json = response.json()
         print(response_json)
         return response_json.get("data")
