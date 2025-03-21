@@ -73,7 +73,6 @@ class OAuthCallback(Resource):
             return {"error": "Invalid provider"}, 400
 
         code = request.args.get("code")
-        tenant = request.args.get("tenant")
         state = request.args.get("state")
         invite_token = None
         if state:
@@ -81,7 +80,7 @@ class OAuthCallback(Resource):
 
         try:
             token = oauth_provider.get_access_token(code)
-            user_info = oauth_provider.get_user_info(token, tenant=tenant)
+            user_info = oauth_provider.get_user_info(token, **request.args)
         except requests.exceptions.RequestException as e:
             error_text = e.response.text if e.response else str(e)
             logging.exception(f"An error occurred during the OAuth process with {provider}: {error_text}")

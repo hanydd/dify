@@ -521,9 +521,14 @@ class AuthConfig(BaseSettings):
         default="/console/api/oauth/authorize",
     )
 
+    CBRAIN_BASE_URL: str = Field(
+        description="C大脑获取用户信息接口",
+        default="http://10.230.1.182",
+    )
+
     CBRAIN_USER_INFO_URL: str = Field(
         description="C大脑获取用户信息接口",
-        default="http://10.230.1.182/cbrain-gateway/cbrain-portal-server/application/userLogin/userInfo",
+        default="/cbrain-gateway/cbrain-portal-server/application/userLogin/userInfo",
     )
 
     GITHUB_CLIENT_ID: Optional[str] = Field(
