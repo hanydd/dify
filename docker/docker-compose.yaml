@@ -5,6 +5,10 @@
 # ==================================================================
 
 x-shared-env: &shared-api-worker-env
+  ENABLE_SOCIAL_OAUTH_LOGIN: ${ENABLE_SOCIAL_OAUTH_LOGIN:-true}
+  ALLOW_CREATE_WORKSPACE: ${ALLOW_CREATE_WORKSPACE:-true}
+  ALLOW_REGISTER: ${ALLOW_REGISTER:-true}
+  CBRAIN_USER_INFO_URL: ${CBRAIN_USER_INFO_URL:-http://10.230.1.182/cbrain-gateway/cbrain-portal-server/application/userLogin/userInfo}
   CONSOLE_API_URL: ${CONSOLE_API_URL:-}
   CONSOLE_WEB_URL: ${CONSOLE_WEB_URL:-}
   SERVICE_API_URL: ${SERVICE_API_URL:-}
@@ -59,7 +63,7 @@ x-shared-env: &shared-api-worker-env
   REDIS_HOST: ${REDIS_HOST:-redis}
   REDIS_PORT: ${REDIS_PORT:-6379}
   REDIS_USERNAME: ${REDIS_USERNAME:-}
-  REDIS_PASSWORD: ${REDIS_PASSWORD:-difyai123456}
+  REDIS_PASSWORD: ${REDIS_PASSWORD:-}
   REDIS_USE_SSL: ${REDIS_USE_SSL:-false}
   REDIS_DB: ${REDIS_DB:-0}
   REDIS_USE_SENTINEL: ${REDIS_USE_SENTINEL:-false}
@@ -432,7 +436,7 @@ x-shared-env: &shared-api-worker-env
 services:
   # API service
   api:
-    image: langgenius/dify-api:1.1.0
+    image: hanyd501/cbrain-dify-api:1.1.0
     restart: always
     environment:
       # Use the shared environment variables.
@@ -446,9 +450,6 @@ services:
       PLUGIN_REMOTE_INSTALL_PORT: ${EXPOSE_PLUGIN_DEBUGGING_PORT:-5003}
       PLUGIN_MAX_PACKAGE_SIZE: ${PLUGIN_MAX_PACKAGE_SIZE:-52428800}
       INNER_API_KEY_FOR_PLUGIN: ${PLUGIN_DIFY_INNER_API_KEY:-QaHbTe77CtuXmsfyhR7+vRjI/+XbV1AaFy691iy+kGDv2Jvy0/eAh8Y1}
-    depends_on:
-      - db
-      - redis
     volumes:
       # Mount the storage directory to the container, for storing user files.
       - ./volumes/app/storage:/app/api/storage
@@ -471,9 +472,6 @@ services:
       SENTRY_PROFILES_SAMPLE_RATE: ${API_SENTRY_PROFILES_SAMPLE_RATE:-1.0}
       PLUGIN_MAX_PACKAGE_SIZE: ${PLUGIN_MAX_PACKAGE_SIZE:-52428800}
       INNER_API_KEY_FOR_PLUGIN: ${PLUGIN_DIFY_INNER_API_KEY:-QaHbTe77CtuXmsfyhR7+vRjI/+XbV1AaFy691iy+kGDv2Jvy0/eAh8Y1}
-    depends_on:
-      - db
-      - redis
     volumes:
       # Mount the storage directory to the container, for storing user files.
       - ./volumes/app/storage:/app/api/storage
@@ -500,43 +498,6 @@ services:
       LOOP_NODE_MAX_COUNT: ${LOOP_NODE_MAX_COUNT:-100}
       MAX_TOOLS_NUM: ${MAX_TOOLS_NUM:-10}
       MAX_PARALLEL_LIMIT: ${MAX_PARALLEL_LIMIT:-10}
-
-  # The postgres database.
-  db:
-    image: postgres:15-alpine
-    restart: always
-    environment:
-      PGUSER: ${PGUSER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-difyai123456}
-      POSTGRES_DB: ${POSTGRES_DB:-dify}
-      PGDATA: ${PGDATA:-/var/lib/postgresql/data/pgdata}
-    command: >
-      postgres -c 'max_connections=${POSTGRES_MAX_CONNECTIONS:-100}'
-               -c 'shared_buffers=${POSTGRES_SHARED_BUFFERS:-128MB}'
-               -c 'work_mem=${POSTGRES_WORK_MEM:-4MB}'
-               -c 'maintenance_work_mem=${POSTGRES_MAINTENANCE_WORK_MEM:-64MB}'
-               -c 'effective_cache_size=${POSTGRES_EFFECTIVE_CACHE_SIZE:-4096MB}'
-    volumes:
-      - ./volumes/db/data:/var/lib/postgresql/data
-    healthcheck:
-      test: [ 'CMD', 'pg_isready' ]
-      interval: 1s
-      timeout: 3s
-      retries: 30
-
-  # The redis cache.
-  redis:
-    image: redis:6-alpine
-    restart: always
-    environment:
-      REDISCLI_AUTH: ${REDIS_PASSWORD:-difyai123456}
-    volumes:
-      # Mount the redis data directory to the container.
-      - ./volumes/redis/data:/data
-    # Set the redis password when startup redis server.
-    command: redis-server --requirepass ${REDIS_PASSWORD:-difyai123456}
-    healthcheck:
-      test: [ 'CMD', 'redis-cli', 'ping' ]
 
   # The DifySandbox
   sandbox:
@@ -586,8 +547,6 @@ services:
       - "${EXPOSE_PLUGIN_DEBUGGING_PORT:-5003}:${PLUGIN_DEBUGGING_PORT:-5003}"
     volumes:
       - ./volumes/plugin_daemon:/app/storage
-    depends_on:
-      - db
 
   # ssrf_proxy server
   # for more information, please refer to

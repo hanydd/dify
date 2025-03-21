@@ -1,0 +1,1 @@
+docker compose -p dify --profile weaviate up -d
