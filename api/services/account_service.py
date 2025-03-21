@@ -615,7 +615,7 @@ class TenantService:
         if name:
             tenant = TenantService.create_tenant(name=name, is_setup=is_setup)
         else:
-            tenant = TenantService.create_tenant(name=f"{account.name}'s Workspace", is_setup=is_setup)
+            tenant = TenantService.create_tenant(name=f"{account.name}的工作空间", is_setup=is_setup)
         TenantService.create_tenant_member(tenant, account, role="owner")
         account.current_tenant = tenant
         db.session.commit()
@@ -903,7 +903,7 @@ class RegisterService:
                 AccountService.link_account_integrate(provider, open_id, account)
 
             if FeatureService.get_system_features().is_allow_create_workspace and create_workspace_required:
-                tenant = TenantService.create_tenant(f"{account.name}'s Workspace")
+                tenant = TenantService.create_tenant(f"{account.name}的工作空间")
                 TenantService.create_tenant_member(tenant, account, role="owner")
                 account.current_tenant = tenant
                 tenant_was_created.send(tenant)
