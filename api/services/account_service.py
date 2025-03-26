@@ -609,8 +609,10 @@ class TenantService:
             return
 
         """Create owner tenant if not exist"""
-        if not FeatureService.get_system_features().is_allow_create_workspace and not is_setup:
-            raise WorkSpaceNotAllowedCreateError()
+        if dify_config.DEFAULT_TENANT_ID is not None:
+            root_tenant = db.session.query(Tenant).filter(Tenant.id == dify_config.DEFAULT_TENANT_ID).first()
+            if root_tenant is not None:
+                TenantService.create_tenant_member(root_tenant, account, role="normal")
 
         if name:
             tenant = TenantService.create_tenant(name=name, is_setup=is_setup)
