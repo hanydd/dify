@@ -265,7 +265,6 @@ class ProviderManager:
         default_model = (
             db.session.query(TenantDefaultModel)
             .filter(
-                TenantDefaultModel.tenant_id == tenant_id,
                 TenantDefaultModel.model_type == model_type.to_origin_model_type(),
             )
             .first()
