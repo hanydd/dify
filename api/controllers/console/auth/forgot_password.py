@@ -22,7 +22,7 @@ from extensions.ext_database import db
 from libs.helper import email, extract_remote_ip
 from libs.password import hash_password, valid_password
 from models.account import Account
-from services.account_service import AccountService, TenantService
+from services.account_service import AccountService, TenantService, RegisterService
 from services.errors.account import AccountRegisterError
 from services.errors.workspace import WorkSpaceNotAllowedCreateError
 from services.feature_service import FeatureService
@@ -127,10 +127,7 @@ class ForgotPasswordResetApi(Resource):
             db.session.commit()
             tenant = TenantService.get_join_tenants(account)
             if not tenant and not FeatureService.get_system_features().is_allow_create_workspace:
-                tenant = TenantService.create_tenant(f"{account.name}的工作空间")
-                TenantService.create_tenant_member(tenant, account, role="owner")
-                account.current_tenant = tenant
-                tenant_was_created.send(tenant)
+                RegisterService.create_default_tenant(account)
         else:
             try:
                 account = AccountService.create_account_and_tenant(

@@ -157,14 +157,7 @@ def _generate_account(provider: str, user_info: OAuthUserInfo):
             if not FeatureService.get_system_features().is_allow_create_workspace:
                 raise WorkSpaceNotAllowedCreateError()
             else:
-                if dify_config.DEFAULT_TENANT_ID is not None:
-                    root_tenant = db.session.query(Tenant).filter(Tenant.id == dify_config.DEFAULT_TENANT_ID).first()
-                    if root_tenant is not None:
-                        TenantService.create_tenant_member(root_tenant, account, role="normal")
-                tenant = TenantService.create_tenant(f"{account.name}的工作空间")
-                TenantService.create_tenant_member(tenant, account, role="owner")
-                account.current_tenant = tenant
-                tenant_was_created.send(tenant)
+                RegisterService.create_default_tenant(account=account)
 
     if not account:
         if not FeatureService.get_system_features().is_allow_register:
