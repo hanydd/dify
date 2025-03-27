@@ -126,9 +126,7 @@ export default function AppSelector({ isMobile }: IAppSelector) {
                         className={classNames(itemClassName, 'group justify-between',
                           'data-[active]:bg-state-base-hover',
                         )}
-                        href={
-                          locale !== LanguagesSupported[1] ? 'https://docs.dify.ai/' : `https://docs.dify.ai/v/${locale.toLowerCase()}/`
-                        }
+                        href="http://172.16.23.103:8000/readme.pdf"
                         target='_blank' rel='noopener noreferrer'>
                         <RiBookOpenLine className='size-4 shrink-0 text-text-tertiary' />
                         <div className='system-md-regular grow px-1 text-text-secondary'>{t('common.userProfile.helpCenter')}</div>
