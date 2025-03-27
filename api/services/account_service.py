@@ -617,7 +617,7 @@ class TenantService:
             root_tenant = db.session.query(Tenant).filter(Tenant.id == dify_config.DEFAULT_TENANT_ID).first()
             logging.info(root_tenant)
             if root_tenant is not None:
-                TenantService.create_tenant_member(root_tenant, account, role="normal")
+                TenantService.create_tenant_member(root_tenant, account, role="editor")
 
         if name:
             tenant = TenantService.create_tenant(name=name, is_setup=is_setup)
@@ -937,7 +937,7 @@ class RegisterService:
                 Tenant.id == dify_config.DEFAULT_TENANT_ID).first()
             logging.info(root_tenant)
             if root_tenant is not None:
-                TenantService.create_tenant_member(root_tenant, account, role="normal")
+                TenantService.create_tenant_member(root_tenant, account, role="editor")
         tenant = TenantService.create_tenant(f"{account.name}的工作空间")
         TenantService.create_tenant_member(tenant, account, role="owner")
         account.current_tenant = tenant
