@@ -411,7 +411,7 @@ class InnerAPIConfig(BaseSettings):
 
     INNER_API: bool = Field(
         description="Enable or disable the internal API",
-        default=False,
+        default=True,
     )
 
     INNER_API_KEY: Optional[str] = Field(
