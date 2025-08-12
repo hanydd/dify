@@ -137,13 +137,16 @@ class KnowledgeRateLimitModel(BaseModel):
 class SystemFeatureModel(BaseModel):
     sso_enforced_for_signin: bool = False
     sso_enforced_for_signin_protocol: str = ""
+    sso_enforced_for_web: bool = False
+    sso_enforced_for_web_protocol: str = ""
+    enable_web_sso_switch_component: bool = True
     enable_marketplace: bool = False
     max_plugin_package_size: int = dify_config.PLUGIN_MAX_PACKAGE_SIZE
     enable_email_code_login: bool = False
     enable_email_password_login: bool = True
-    enable_social_oauth_login: bool = False
-    is_allow_register: bool = False
-    is_allow_create_workspace: bool = False
+    enable_social_oauth_login: bool = True
+    is_allow_register: bool = True
+    is_allow_create_workspace: bool = True
     is_email_setup: bool = False
     license: LicenseModel = LicenseModel()
     branding: BrandingModel = BrandingModel()
@@ -200,7 +203,7 @@ class FeatureService:
         system_features.enable_email_code_login = dify_config.ENABLE_EMAIL_CODE_LOGIN
         system_features.enable_email_password_login = dify_config.ENABLE_EMAIL_PASSWORD_LOGIN
         system_features.enable_social_oauth_login = dify_config.ENABLE_SOCIAL_OAUTH_LOGIN
-        system_features.is_allow_register = dify_config.ALLOW_REGISTER
+        system_features.is_allow_register = True
         system_features.is_allow_create_workspace = dify_config.ALLOW_CREATE_WORKSPACE
         system_features.is_email_setup = dify_config.MAIL_TYPE is not None and dify_config.MAIL_TYPE != ""
 
@@ -287,24 +290,8 @@ class FeatureService:
         if "IsAllowCreateWorkspace" in enterprise_info:
             features.is_allow_create_workspace = enterprise_info["IsAllowCreateWorkspace"]
 
-        if "Branding" in enterprise_info:
-            features.branding.application_title = enterprise_info["Branding"].get("applicationTitle", "")
-            features.branding.login_page_logo = enterprise_info["Branding"].get("loginPageLogo", "")
-            features.branding.workspace_logo = enterprise_info["Branding"].get("workspaceLogo", "")
-            features.branding.favicon = enterprise_info["Branding"].get("favicon", "")
-
-        if "WebAppAuth" in enterprise_info:
-            features.webapp_auth.allow_sso = enterprise_info["WebAppAuth"].get("allowSso", False)
-            features.webapp_auth.allow_email_code_login = enterprise_info["WebAppAuth"].get(
-                "allowEmailCodeLogin", False
-            )
-            features.webapp_auth.allow_email_password_login = enterprise_info["WebAppAuth"].get(
-                "allowEmailPasswordLogin", False
-            )
-            features.webapp_auth.sso_config.protocol = enterprise_info.get("SSOEnforcedForWebProtocol", "")
-
-        if "License" in enterprise_info:
-            license_info = enterprise_info["License"]
+        if "license" in enterprise_info:
+            license_info = enterprise_info["license"]
 
             if "status" in license_info:
                 features.license.status = LicenseStatus(license_info.get("status", LicenseStatus.INACTIVE))
