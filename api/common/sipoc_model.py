@@ -78,5 +78,5 @@ class IORCConfig:
 class SipocModelConfig:
     """SipocModelConfig类"""
     modelContext: Optional[IORCConfig] = None  # 给dify的输入变量
-    modelGenetate: Optional[IORCConfig] = None  # dify的生成变量
+    modelGenerate: Optional[IORCConfig] = None  # dify的生成变量
 
