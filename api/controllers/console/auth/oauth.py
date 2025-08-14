@@ -60,7 +60,44 @@ class OAuthLogin(Resource):
         if not oauth_provider:
             return {"error": "Invalid provider"}, 400
 
+        # 获取新的入参参数
+        current_user_id = request.args.get("currentUserld")
+        entry_point = request.args.get("entry_point", "1")
+        value_chain_id = request.args.get("valueChainld")
+        value_flow_version_id = request.args.get("valueFlowVersionld")
+        procedure_id = request.args.get("procedureld")
+        model_type = request.args.get("modelType")
+        node_id = request.args.get("nodeld")
+        tenant = request.args.get("tenant")
+
         auth_url = oauth_provider.get_authorization_url(invite_token=invite_token)
+        
+        # 构建完整的授权URL，包含新的参数
+        if auth_url:
+            # 如果授权URL已经存在，添加新的参数
+            separator = "&" if "?" in auth_url else "?"
+            params = []
+            
+            if current_user_id:
+                params.append(f"currentUserld={current_user_id}")
+            if entry_point:
+                params.append(f"entry_point={entry_point}")
+            if value_chain_id:
+                params.append(f"valueChainld={value_chain_id}")
+            if value_flow_version_id:
+                params.append(f"valueFlowVersionld={value_flow_version_id}")
+            if procedure_id:
+                params.append(f"procedureld={procedure_id}")
+            if model_type:
+                params.append(f"modelType={model_type}")
+            if node_id:
+                params.append(f"nodeld={node_id}")
+            if tenant:
+                params.append(f"tenant={tenant}")
+            
+            if params:
+                auth_url += separator + "&".join(params)
+        
         return redirect(auth_url)
 
 
@@ -79,9 +116,29 @@ class OAuthCallback(Resource):
         if state:
             invite_token = state
 
+        # 获取新的入参参数
+        current_user_id = request.args.get("currentUserld")
+        entry_point = request.args.get("entry_point", "1")
+        value_chain_id = request.args.get("valueChainld")
+        value_flow_version_id = request.args.get("valueFlowVersionld")
+        procedure_id = request.args.get("procedureld")
+        model_type = request.args.get("modelType")
+        node_id = request.args.get("nodeld")
+
         try:
             token = oauth_provider.get_access_token(code)
-            user_info = oauth_provider.get_user_info(token, tenant=tenant)
+            # 传递新的入参参数
+            user_info = oauth_provider.get_user_info(
+                token, 
+                tenant=tenant,
+                currentUserld=current_user_id,
+                entry_point=int(entry_point) if entry_point else 1,
+                valueChainld=value_chain_id,
+                valueFlowVersionld=value_flow_version_id,
+                procedureld=procedure_id,
+                modelType=model_type,
+                nodeld=node_id
+            )
         except requests.exceptions.RequestException as e:
             error_text = e.response.text if e.response else str(e)
             logging.exception("An error occurred during the OAuth process with %s: %s", provider, error_text)
@@ -132,9 +189,20 @@ class OAuthCallback(Resource):
             ip_address=extract_remote_ip(request),
         )
 
-        return redirect(
-            f"{dify_config.CONSOLE_WEB_URL}?access_token={token_pair.access_token}&refresh_token={token_pair.refresh_token}"
-        )
+        # 构建重定向URL，包含新的返回参数
+        redirect_url = f"{dify_config.CONSOLE_WEB_URL}?access_token={token_pair.access_token}&refresh_token={token_pair.refresh_token}"
+        
+        # 添加新的返回参数
+        if user_info.cbrain_token:
+            redirect_url += f"&cbrain_token={user_info.cbrain_token}"
+        if user_info.workspace:
+            redirect_url += f"&workspace={user_info.workspace}"
+        if user_info.entry_point:
+            redirect_url += f"&entry_point={user_info.entry_point}"
+        if user_info.agent_id:
+            redirect_url += f"&agent_id={user_info.agent_id}"
+
+        return redirect(redirect_url)
 
 
 def _get_account_by_openid_or_email(provider: str, user_info: OAuthUserInfo) -> Optional[Account]:

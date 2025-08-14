@@ -1,6 +1,6 @@
 import urllib.parse
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Dict, Any
 
 import requests
 
@@ -10,6 +10,11 @@ class OAuthUserInfo:
     id: str
     name: str
     email: str
+    # 新增返回参数
+    cbrain_token: Optional[str] = None
+    workspace: Optional[str] = None
+    entry_point: Optional[int] = None
+    agent_id: Optional[str] = None
 
 
 class OAuth:
@@ -47,8 +52,32 @@ class CbrainOAuth(OAuth):
 
     def get_raw_user_info(self, token: str, **kwargs):
         print("get_raw_user_info", token, kwargs)
-        headers = {"Authorization": f"Bearer {token}", "environment": kwargs.get("tenant")}
-        response = requests.post(self._USER_INFO_URL, headers=headers)
+        
+        # 构建请求头，支持新的入参
+        headers = {
+            "Authorization": f"Bearer {token}", 
+            "environment": kwargs.get("tenant")
+        }
+        
+        # 构建请求体，支持新的入参
+        data = {
+            "token": token,
+            "currentUserld": kwargs.get("currentUserld"),
+            "environment": kwargs.get("tenant"),
+            "entry_point": kwargs.get("entry_point", 1),  # 默认普通入口
+        }
+        
+        # 如果是活动登录，添加活动相关参数
+        if kwargs.get("entry_point") == 2:
+            data.update({
+                "valueChainld": kwargs.get("valueChainld"),
+                "valueFlowVersionld": kwargs.get("valueFlowVersionld"),
+                "procedureld": kwargs.get("procedureld"),
+                "modelType": kwargs.get("modelType"),
+                "nodeld": kwargs.get("nodeld"),
+            })
+        
+        response = requests.post(self._USER_INFO_URL, headers=headers, json=data)
         print(response.status_code)
         response_json = response.json()
         print(response_json)
@@ -57,7 +86,17 @@ class CbrainOAuth(OAuth):
     def _transform_user_info(self, raw_info: dict) -> OAuthUserInfo:
         print("_transform_user_info", raw_info)
         email = raw_info["currentUserId"] + "@dify.comnova.com"
-        return OAuthUserInfo(id=raw_info["currentUserId"], name=raw_info["userName"], email=email)
+        
+        # 构建返回的用户信息，包含新的返回参数
+        return OAuthUserInfo(
+            id=raw_info["currentUserId"], 
+            name=raw_info["userName"], 
+            email=email,
+            cbrain_token=raw_info.get("cbrain_token"),
+            workspace=raw_info.get("workspace"),
+            entry_point=raw_info.get("entry_point", 1),
+            agent_id=raw_info.get("agent_id")
+        )
 
 
 class GitHubOAuth(OAuth):
@@ -110,7 +149,16 @@ class GitHubOAuth(OAuth):
         email = raw_info.get("email")
         if not email:
             email = f"{raw_info['id']}+{raw_info['login']}@users.noreply.github.com"
-        return OAuthUserInfo(id=str(raw_info["id"]), name=raw_info["name"], email=email)
+        return OAuthUserInfo(
+            id=str(raw_info["id"]), 
+            name=raw_info["name"], 
+            email=email,
+            # GitHub OAuth不提供这些参数，设为None
+            cbrain_token=None,
+            workspace=None,
+            entry_point=1,  # 默认为普通登录
+            agent_id=None
+        )
 
 
 class GoogleOAuth(OAuth):
@@ -155,4 +203,13 @@ class GoogleOAuth(OAuth):
         return response.json()
 
     def _transform_user_info(self, raw_info: dict) -> OAuthUserInfo:
-        return OAuthUserInfo(id=str(raw_info["sub"]), name="", email=raw_info["email"])
+        return OAuthUserInfo(
+            id=str(raw_info["sub"]), 
+            name="", 
+            email=raw_info["email"],
+            # Google OAuth不提供这些参数，设为None
+            cbrain_token=None,
+            workspace=None,
+            entry_point=1,  # 默认为普通登录
+            agent_id=None
+        )
