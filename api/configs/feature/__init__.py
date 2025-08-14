@@ -962,6 +962,19 @@ class AccountConfig(BaseSettings):
     )
 
 
+class DefaultWorkspaceConfig(BaseSettings):
+    """默认工作空间配置"""
+    DEFAULT_WORKSPACES: str = Field(
+        description="默认工作空间名称列表，用逗号分隔",
+        default="商飞智能工作空间,商飞工作空间",
+    )
+    
+    @property
+    def DEFAULT_WORKSPACES_LIST(self) -> list[str]:
+        """获取默认工作空间名称列表"""
+        return [ws.strip() for ws in self.DEFAULT_WORKSPACES.split(",") if ws.strip()]
+
+
 class FeatureConfig(
     # place the configs in alphabet order
     AppExecutionConfig,
@@ -971,6 +984,7 @@ class FeatureConfig(
     PluginConfig,
     MarketplaceConfig,
     DataSetConfig,
+    DefaultWorkspaceConfig,  # 新增默认工作空间配置
     EndpointConfig,
     FileAccessConfig,
     FileUploadConfig,

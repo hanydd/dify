@@ -99,6 +99,7 @@ class AppListApi(Resource):
         parser.add_argument("icon_type", type=str, location="json")
         parser.add_argument("icon", type=str, location="json")
         parser.add_argument("icon_background", type=str, location="json")
+        parser.add_argument("entry_point", type=str, location="json")  # 新增入口标识参数
         args = parser.parse_args()
 
         # The role of the current user in the ta table must be admin, owner, or editor
