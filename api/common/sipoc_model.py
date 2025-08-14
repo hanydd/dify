@@ -73,6 +73,7 @@ class IORCConfig:
     inputNodes: Optional[List[NodeObject]] = None  # sipoc的i
     outputNodes: Optional[List[NodeObject]] = None  # sipoc的o
     controlNodes: Optional[List[NodeObject]] = None  # sipoc的c
+    resourceNodes: Optional[List[NodeObject]] = None # sipoc中的r
 
 @dataclass
 class SipocModelConfig:
