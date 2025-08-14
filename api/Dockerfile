@@ -1,5 +1,5 @@
 # base image
-FROM python:3.12-slim-bookworm AS base
+FROM 192.168.6.210/library/python:3.12-slim-bookworm AS base
 
 WORKDIR /app/api
 
