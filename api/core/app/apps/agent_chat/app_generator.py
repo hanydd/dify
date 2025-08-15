@@ -27,6 +27,7 @@ from factories import file_factory
 from libs.flask_utils import preserve_flask_contexts
 from models import Account, App, EndUser
 from services.conversation_service import ConversationService
+from services.sipoc_service import SipocService
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +108,18 @@ class AgentChatAppGenerator(MessageBasedAppGenerator):
             )
         # get app model config
         app_model_config = self._get_app_model_config(app_model=app_model, conversation=conversation)
+
+        sipoc_config = args["sipoc_config"]
+        if sipoc_config:
+            # generate sipoc kv
+            sipoc_kv = SipocService.generate_sipoc_kv(sipoc_config)
+
+            # add sipoc kv to inputs
+            for k, v in sipoc_kv.items():
+                if SipocService.is_file_sipoc_kv(k, v):
+                    SipocService.handle_sipoc_file(k, v, app_model_config)
+                else:
+                    inputs[k] = v
 
         # validate override model config
         override_model_config_dict = None
