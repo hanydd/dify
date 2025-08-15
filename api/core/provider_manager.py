@@ -397,7 +397,9 @@ class ProviderManager:
     def _get_all_providers(tenant_id: str) -> dict[str, list[Provider]]:
         provider_name_to_provider_records_dict = defaultdict(list)
         with Session(db.engine, expire_on_commit=False) as session:
-            stmt = select(Provider).where(Provider.tenant_id == tenant_id, Provider.is_valid == True)
+            #stmt = select(Provider).where(Provider.tenant_id == tenant_id, Provider.is_valid == True)
+            # todo 或者这里找到指定的租户
+            stmt = select(Provider).where(Provider.is_valid == True)
             providers = session.scalars(stmt)
             for provider in providers:
                 # Use provider name with prefix after the data migration
@@ -414,7 +416,9 @@ class ProviderManager:
         """
         provider_name_to_provider_model_records_dict = defaultdict(list)
         with Session(db.engine, expire_on_commit=False) as session:
-            stmt = select(ProviderModel).where(ProviderModel.tenant_id == tenant_id, ProviderModel.is_valid == True)
+            #stmt = select(ProviderModel).where(ProviderModel.tenant_id == tenant_id, ProviderModel.is_valid == True)
+            # todo 或者这里找到指定的租户
+            stmt = select(ProviderModel).where(ProviderModel.is_valid == True)
             provider_models = session.scalars(stmt)
             for provider_model in provider_models:
                 provider_name_to_provider_model_records_dict[provider_model.provider_name].append(provider_model)
