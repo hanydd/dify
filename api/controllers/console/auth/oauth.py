@@ -156,7 +156,7 @@ def _generate_account(provider: str, user_info: OAuthUserInfo):
             if not FeatureService.get_system_features().is_allow_create_workspace:
                 raise WorkSpaceNotAllowedCreateError()
             else:
-                new_tenant = TenantService.create_tenant(f"{account.name}'s Workspace")
+                new_tenant = TenantService.create_tenant(f"{account.name}的工作空间")
                 TenantService.create_tenant_member(new_tenant, account, role="owner")
                 account.current_tenant = new_tenant
                 tenant_was_created.send(new_tenant)

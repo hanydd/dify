@@ -906,7 +906,7 @@ class TenantService:
         if name:
             tenant = TenantService.create_tenant(name=name, is_setup=is_setup)
         else:
-            tenant = TenantService.create_tenant(name=f"{account.name}'s Workspace", is_setup=is_setup)
+            tenant = TenantService.create_tenant(name=f"{account.name}的工作空间", is_setup=is_setup)
         TenantService.create_tenant_member(tenant, account, role="owner")
         account.current_tenant = tenant
         db.session.commit()
@@ -1206,7 +1206,7 @@ class RegisterService:
                 and create_workspace_required
                 and FeatureService.get_system_features().license.workspaces.is_available()
             ):
-                tenant = TenantService.create_tenant(f"{account.name}'s Workspace")
+                tenant = TenantService.create_tenant(f"{account.name}的工作空间")
                 TenantService.create_tenant_member(tenant, account, role="owner")
                 account.current_tenant = tenant
                 tenant_was_created.send(tenant)
