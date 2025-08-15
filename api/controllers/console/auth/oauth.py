@@ -6,6 +6,7 @@ from flask import current_app, redirect, request
 from flask_restful import Resource
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from unstructured.utils import first
 from werkzeug.exceptions import Unauthorized
 
 from configs import dify_config
@@ -16,7 +17,7 @@ from libs.datetime_utils import naive_utc_now
 from libs.helper import extract_remote_ip
 from libs.oauth import CbrainOAuth, GitHubOAuth, GoogleOAuth, OAuthUserInfo
 from models import Account
-from models.account import AccountStatus
+from models.account import AccountStatus, Tenant
 from services.account_service import AccountService, RegisterService, TenantService
 from services.errors.account import AccountNotFoundError, AccountRegisterError
 from services.errors.workspace import WorkSpaceNotAllowedCreateError, WorkSpaceNotFoundError
@@ -156,10 +157,7 @@ def _generate_account(provider: str, user_info: OAuthUserInfo):
             if not FeatureService.get_system_features().is_allow_create_workspace:
                 raise WorkSpaceNotAllowedCreateError()
             else:
-                new_tenant = TenantService.create_tenant(f"{account.name}的工作空间")
-                TenantService.create_tenant_member(new_tenant, account, role="owner")
-                account.current_tenant = new_tenant
-                tenant_was_created.send(new_tenant)
+                RegisterService.create_default_tenant(account=account)
 
     if not account:
         if not FeatureService.get_system_features().is_allow_register:

@@ -884,6 +884,7 @@ class TenantService:
     def create_owner_tenant_if_not_exist(
         account: Account, name: Optional[str] = None, is_setup: Optional[bool] = False
     ):
+        logging.info(f"Create owner tenant for account {account.id}")
         """Check if user have a workspace or not"""
         available_ta = (
             db.session.query(TenantAccountJoin)
@@ -891,13 +892,19 @@ class TenantService:
             .order_by(TenantAccountJoin.id.asc())
             .first()
         )
+        logging.info(f"available tanent {available_ta}")
 
         if available_ta:
             return
 
         """Create owner tenant if not exist"""
-        if not FeatureService.get_system_features().is_allow_create_workspace and not is_setup:
-            raise WorkSpaceNotAllowedCreateError()
+        logging.info("加入默认空间 create_owner_tenant_if_not_exist")
+        if dify_config.DEFAULT_TENANT_ID is not None:
+            logging.info("加入默认空间" + dify_config.DEFAULT_TENANT_ID)
+            root_tenant = db.session.query(Tenant).filter(Tenant.id == dify_config.DEFAULT_TENANT_ID).first()
+            logging.info(root_tenant)
+            if root_tenant is not None:
+                TenantService.create_tenant_member(root_tenant, account, role="editor")
 
         workspaces = FeatureService.get_system_features().license.workspaces
         if not workspaces.is_available():
@@ -1206,10 +1213,7 @@ class RegisterService:
                 and create_workspace_required
                 and FeatureService.get_system_features().license.workspaces.is_available()
             ):
-                tenant = TenantService.create_tenant(f"{account.name}的工作空间")
-                TenantService.create_tenant_member(tenant, account, role="owner")
-                account.current_tenant = tenant
-                tenant_was_created.send(tenant)
+                cls.create_default_tenant(account)
 
             db.session.commit()
         except WorkSpaceNotAllowedCreateError:
@@ -1226,6 +1230,21 @@ class RegisterService:
             raise AccountRegisterError(f"Registration failed: {e}") from e
 
         return account
+
+    @classmethod
+    def create_default_tenant(cls, account: Account) -> None:
+        logging.info("加入默认空间")
+        if dify_config.DEFAULT_TENANT_ID is not None:
+            logging.info("加入默认空间" + dify_config.DEFAULT_TENANT_ID)
+            root_tenant = db.session.query(Tenant).filter(
+                Tenant.id == dify_config.DEFAULT_TENANT_ID).first()
+            logging.info(root_tenant)
+            if root_tenant is not None:
+                TenantService.create_tenant_member(root_tenant, account, role="editor")
+        tenant = TenantService.create_tenant(f"{account.name}的工作空间")
+        TenantService.create_tenant_member(tenant, account, role="owner")
+        account.current_tenant = tenant
+        tenant_was_created.send(tenant)
 
     @classmethod
     def invite_new_member(

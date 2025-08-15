@@ -593,6 +593,11 @@ class AuthConfig(BaseSettings):
         default="/cbrain-gateway/cbrain-portal-server/application/userLogin/userInfo",
     )
 
+    DEFAULT_TENANT_ID: str = Field(
+        description="Default tenant id",
+        default=None,
+    )
+
     GITHUB_CLIENT_ID: Optional[str] = Field(
         description="GitHub OAuth client ID",
         default=None,
