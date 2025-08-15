@@ -79,4 +79,6 @@ class SipocModelConfig:
     """SipocModelConfig类"""
     modelContext: Optional[IORCConfig] = None  # 给dify的输入变量
     modelGenerate: Optional[IORCConfig] = None  # dify的生成变量
+    modelContextKV: Optional[Dict[str, Any]] = None  # 给dify的输入变量转化为kv
+    modelGenerateKV: Optional[Dict[str, Any]] = None  # dify的生成变量转化为kv
 

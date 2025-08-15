@@ -22,32 +22,47 @@ class SipocService:
 
 
     @staticmethod
-    def generate_sipoc_kv(sipoc_config: SipocModelConfig) -> dict:
+    def generate_sipoc_kv(sipoc_config: SipocModelConfig, use_kv: bool = True) -> dict:
         """
         Generate sipoc kv from sipoc config，解析sipoc数据，转化为key，value字典
         :param sipoc_config: sipoc config
         :return:
         """
-
+        if use_kv and sipoc_config.modelContextKV:
+            return sipoc_config.modelContextKV
         sipoc_kv = {}
-        for iorcConfig in sipoc_config.modelContext:
+        iorcConfig = sipoc_config.modelContext
+        if iorcConfig:
             if iorcConfig.inputNodes:
                 for inputNode in iorcConfig.inputNodes:
-                    if not isinstance(inputNode, NodeObject):
-                        continue
                     node_kv = SipocService.generate_node_kv(inputNode, 'input')
                     sipoc_kv.update(node_kv)
             if iorcConfig.outputNodes:
                 for outputNode in iorcConfig.outputNodes:
-                    if not isinstance(outputNode, NodeObject):
-                        continue
                     node_kv = SipocService.generate_node_kv(outputNode, 'output')
                     sipoc_kv.update(node_kv)
             if iorcConfig.controlNodes:
                 for controlNode in iorcConfig.controlNodes:
-                    if not isinstance(controlNode, NodeObject):
-                        continue
                     node_kv = SipocService.generate_node_kv(controlNode, 'control')
+                    sipoc_kv.update(node_kv)
+
+        return sipoc_kv
+
+    @staticmethod
+    def generate_sipoc_output_kv(sipoc_config: SipocModelConfig, use_kv: bool = True) -> dict:
+        """
+        Generate sipoc kv from sipoc config，解析sipoc数据，转化为key，value字典
+        :param sipoc_config: sipoc config
+        :return:
+        """
+        if use_kv and sipoc_config.modelGenerateKV:
+            return sipoc_config.modelGenerateKV
+        sipoc_kv = {}
+        iorcConfig = sipoc_config.modelGenerate
+        if iorcConfig:
+            if iorcConfig.outputNodes:
+                for outputNode in iorcConfig.outputNodes:
+                    node_kv = SipocService.generate_node_kv(outputNode, 'output')
                     sipoc_kv.update(node_kv)
 
         return sipoc_kv
@@ -85,15 +100,18 @@ class SipocService:
 
 
     @staticmethod
-    def is_file_sipoc_kv(key: str, value: Any) -> bool:
+    def is_file_kv(key: str, value: Any):
         """
         Check if the key is a sipoc file key，检查values是否是sipoc文件附件地址
         :param key:
-        :param value:
+        :param value: [{"name":"导出内容 (40).csv","url":"/cbrain-oss/oss-execute/20241118/%E5%AF%BC%E5%87%BA%E5%86%85%E5%AE%B9%20%2840%29-1731894328435.csv"}]
         :return:
         """
-
-        pass
+        if isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict) and 'name' in item and 'url' in item:
+                    return True, item['url']
+        return False, ""
 
     @staticmethod
     def handle_sipoc_file(key: str, value: Any, app_config: dict) -> dict:
@@ -110,7 +128,6 @@ class SipocService:
 
         # 判断下载的文件是否已经存在，如果存在，则不重复上传，并且判断文件是否已经被知识库引用，如果引用，也不再继续创建知识库
         upload_file = db.session.query(UploadFile).filter(UploadFile.hash == filehash).first()
-
 
 
         if not upload_file:
@@ -167,11 +184,11 @@ class SipocService:
         return app_config
         # response = {"dataset": dataset, "documents": documents, "batch": batch}
 
-
+    @staticmethod
     def generate_default_knowledge_config(file_id: str) -> KnowledgeConfig:
         """
-        Generate default knowledge config from sipoc config，根据sipoc配置，生成默认的知识库配置
-        :param sipoc_config:
+        Generate default knowledge config，生成默认的知识库配置
+        :param file_id:
         :return:
         """
 

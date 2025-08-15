@@ -112,12 +112,13 @@ class AgentChatAppGenerator(MessageBasedAppGenerator):
         sipoc_config = args["sipoc_config"]
         if sipoc_config:
             # generate sipoc kv
-            sipoc_kv = SipocService.generate_sipoc_kv(sipoc_config)
+            sipoc_kv = SipocService.generate_sipoc_kv(sipoc_config, invoke_from != InvokeFrom.DEBUGGER)
 
             # add sipoc kv to inputs
             for k, v in sipoc_kv.items():
-                if SipocService.is_file_sipoc_kv(k, v):
-                    SipocService.handle_sipoc_file(k, v, app_model_config)
+                is_file, file_url = SipocService.is_file_kv(k, v)
+                if is_file:
+                    app_model_config = SipocService.handle_sipoc_file(k, file_url, app_model_config)
                 else:
                     inputs[k] = v
 

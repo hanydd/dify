@@ -96,7 +96,7 @@ class ChatApi(WebApiResource):
 
         parser = reqparse.RequestParser()
         parser.add_argument("inputs", type=dict, required=True, location="json")
-        parser.add_argument("sipoc", type=dict, required=True, location="json")
+        parser.add_argument("sipoc_config", type=dict, required=True, location="json")
         parser.add_argument("query", type=str, required=True, location="json")
         parser.add_argument("files", type=list, required=False, location="json")
         parser.add_argument("response_mode", type=str, choices=["blocking", "streaming"], location="json")
