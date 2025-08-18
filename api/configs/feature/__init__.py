@@ -585,7 +585,7 @@ class AuthConfig(BaseSettings):
 
     CBRAIN_BASE_URL: str = Field(
         description="C大脑获取用户信息接口",
-        default="http://10.230.1.182",
+        default="http://10.230.8.88",
     )
 
     CBRAIN_USER_INFO_URL: str = Field(
