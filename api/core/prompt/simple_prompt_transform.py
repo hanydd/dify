@@ -21,8 +21,8 @@ from core.prompt.prompt_transform import PromptTransform
 from core.prompt.utils.prompt_template_parser import PromptTemplateParser, WITH_VARIABLE_TMPL_REGEX, REGEX
 from models.enums import SceneType
 from models.model import AppMode
-from prompt.prompt_templates.fill_doc_prompt_template import FILL_DOC_PROMPT_TEMPLATE
-from prompt.prompt_templates.fill_table_prompt_template import FILL_TABLE_PROMPT_TEMPLATE
+from core.prompt.prompt_templates.fill_doc_prompt_template import FILL_DOC_PROMPT_TEMPLATE
+from core.prompt.prompt_templates.fill_table_prompt_template import FILL_TABLE_PROMPT_TEMPLATE
 
 if TYPE_CHECKING:
     from core.file.models import File
