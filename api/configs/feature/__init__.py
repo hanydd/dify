@@ -595,7 +595,7 @@ class AuthConfig(BaseSettings):
 
     DEFAULT_TENANT_ID: str = Field(
         description="Default tenant id",
-        default=None,
+        default="",
     )
 
     GITHUB_CLIENT_ID: Optional[str] = Field(
