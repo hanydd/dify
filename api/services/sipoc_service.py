@@ -1,16 +1,13 @@
 import hashlib
 from typing import Any, Tuple
-from minio import Minio
+import boto3
+from botocore.client import Config
 
 import services
 from common.sipoc_model import SipocModelConfig, NodeObject
-from controllers.console.app.error import ProviderNotInitializeError, ProviderQuotaExceededError
-from controllers.service_api.app.error import ProviderModelCurrentlyNotSupportError
-from core.errors.error import ProviderTokenNotInitError, QuotaExceededError, ModelCurrentlyNotSupportError
 from models import db, UploadFile, Document
 from services.dataset_service import DocumentService
 from services.entities.knowledge_entities.knowledge_entities import KnowledgeConfig
-from services.errors.file import FileTooLargeError, UnsupportedFileTypeError
 from services.file_service import FileService
 
 from flask_login import current_user
@@ -35,15 +32,15 @@ class SipocService:
         if iorcConfig:
             if iorcConfig.inputNodes:
                 for inputNode in iorcConfig.inputNodes:
-                    node_kv = SipocService.generate_node_kv(inputNode, 'input')
+                    node_kv = SipocService.generate_node_kv(inputNode, 'ctx_input')
                     sipoc_kv.update(node_kv)
             if iorcConfig.outputNodes:
                 for outputNode in iorcConfig.outputNodes:
-                    node_kv = SipocService.generate_node_kv(outputNode, 'output')
+                    node_kv = SipocService.generate_node_kv(outputNode, 'ctx_output')
                     sipoc_kv.update(node_kv)
             if iorcConfig.controlNodes:
                 for controlNode in iorcConfig.controlNodes:
-                    node_kv = SipocService.generate_node_kv(controlNode, 'control')
+                    node_kv = SipocService.generate_node_kv(controlNode, 'ctx_control')
                     sipoc_kv.update(node_kv)
 
         return sipoc_kv
@@ -62,10 +59,24 @@ class SipocService:
         if iorcConfig:
             if iorcConfig.outputNodes:
                 for outputNode in iorcConfig.outputNodes:
-                    node_kv = SipocService.generate_node_kv(outputNode, 'output')
+                    node_kv = SipocService.generate_node_kv(outputNode, 'gen_output')
                     sipoc_kv.update(node_kv)
 
         return sipoc_kv
+
+    @staticmethod
+    def fillup_sipoc_output_kv(sipoc_config: SipocModelConfig, output_kv: dict) -> SipocModelConfig:
+        """
+        Generate sipoc kv from sipoc config，解析sipoc数据，转化为key，value字典
+        :param sipoc_config: sipoc config
+        :return:
+        """
+        #  TODO
+        if not output_kv or not sipoc_config.modelGenerate:
+            return sipoc_config
+        for outputNode in sipoc_config.modelGenerate.outputNodes:
+            SipocService.fillup_node_kv(outputNode, 'gen_output', output_kv)
+        return sipoc_config
 
     @staticmethod
     def generate_node_kv(nodeObj: NodeObject, prefix: str) -> dict:
@@ -98,6 +109,29 @@ class SipocService:
 
         return sipoc_kv
 
+    @staticmethod
+    def fillup_node_kv(nodeObj: NodeObject, prefix: str, output_kv: dict) -> NodeObject:
+        key = prefix + ':##node##' + nodeObj.label
+        if nodeObj.serviceProperty:
+            for serviceProperty in nodeObj.serviceProperty:
+                if not serviceProperty.name:
+                    continue
+                # input:##node##xx_label.##prop##xx_prop
+                key1 = key + '.##prop##' + serviceProperty.name
+                if key1 in output_kv:
+                    serviceProperty.value = output_kv[key1]
+        if nodeObj.subNodes:
+            for subNode in nodeObj.subNodes:
+                key1 = key + '.##edge##' + subNode.relateEdge + '##' + subNode.label
+                if subNode.serviceProperty:
+                    for serviceProperty in subNode.serviceProperty:
+                        if not serviceProperty.name:
+                            continue
+                        # input:##node##xx_label.##edge##xx_edge##xx_label.##prop##xx_prop
+                        key2 = key1 + '.##prop##' + serviceProperty.name
+                        if key2 in output_kv:
+                            serviceProperty.value = output_kv[key2]
+        return nodeObj
 
     @staticmethod
     def is_file_kv(key: str, value: Any):
@@ -257,25 +291,36 @@ class SipocService:
         secret_key_test = "F3xWGSfl2B6xqCo5EReTiUnjHG6fYEVFZ4LX8jh2"
         bucket_name_test = "cbrain-evolve"
 
-        client = Minio(endpoint_test, access_key=access_key_test, secret_key=secret_key_test, secure=False)
-
         filename = file_path.split("/")[-1]
 
-        try:
-            # get file info
-            obj_info = client.stat_object(bucket_name_test, file_path)
-            print(obj_info)
+        s3 = boto3.client(
+            's3',
+            endpoint_url=endpoint_test,
+            aws_access_key_id=access_key_test,
+            aws_secret_access_key=secret_key_test,
+            config=Config(signature_version='s3v4')
+        )
 
-            print(obj_info.size)
-            print(obj_info.content_type)
-            print(obj_info.last_modified)
-            print(obj_info.etag)
-            response = client.get_object(bucket_name=bucket_name_test, object_name=file_path)
-            filehash = hashlib.sha3_256(response.data).hexdigest()
-            return response.data, filename, obj_info.content_type, filehash, obj_info.size
+        try:
+            # # 下载文件
+            # s3.download_file(
+            #     Bucket=bucket_name_test,
+            #     Key=file_path,
+            #     Filename=local_file_path
+            # )
+            # print(f"文件下载成功: {minio_object_name} -> {local_file_path}")
+            # 获取文件元数据
+            obj_info = s3.head_object(Bucket=bucket_name_test, Key=file_path)
+            # print(obj_info)
+            # print(obj_info['ContentLength'])
+            # print(obj_info['ContentType'])
+            # print(obj_info['ETag'])
+            content = s3.get_object(Bucket=bucket_name_test, Key=file_path)['Body'].read()
+            filehash = hashlib.sha3_256(content).hexdigest()
+            return content, filename, obj_info['ContentType'], filehash, obj_info['ContentLength']
 
         except Exception as e:
-            raise e
+            print(f"下载失败: {str(e)}")
         pass
 
 

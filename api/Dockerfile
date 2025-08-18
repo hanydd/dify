@@ -2,10 +2,7 @@ FROM 192.168.6.210/library/dify/dify-api-base:lastest
 
 WORKDIR /app/api
 
-
-
 EXPOSE 5001
-
 
 # Set up Python environment path
 ENV VIRTUAL_ENV=/app/api/.venv
