@@ -411,7 +411,7 @@ class InnerAPIConfig(BaseSettings):
 
     INNER_API: bool = Field(
         description="Enable or disable the internal API",
-        default=False,
+        default=True,
     )
 
     INNER_API_KEY: Optional[str] = Field(
@@ -581,6 +581,21 @@ class AuthConfig(BaseSettings):
     OAUTH_REDIRECT_PATH: str = Field(
         description="Redirect path for OAuth authentication callbacks",
         default="/console/api/oauth/authorize",
+    )
+
+    CBRAIN_BASE_URL: str = Field(
+        description="C大脑获取用户信息接口",
+        default="http://10.230.1.182",
+    )
+
+    CBRAIN_USER_INFO_URL: str = Field(
+        description="C大脑获取用户信息接口",
+        default="/cbrain-gateway/cbrain-portal-server/application/userLogin/userInfo",
+    )
+
+    DEFAULT_TENANT_ID: str = Field(
+        description="Default tenant id",
+        default=None,
     )
 
     GITHUB_CLIENT_ID: Optional[str] = Field(
@@ -942,11 +957,11 @@ class LoginConfig(BaseSettings):
     )
     ALLOW_REGISTER: bool = Field(
         description="whether to enable register",
-        default=False,
+        default=True,
     )
     ALLOW_CREATE_WORKSPACE: bool = Field(
         description="whether to enable create workspace",
-        default=False,
+        default=True,
     )
 
 
