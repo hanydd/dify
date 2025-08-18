@@ -1,16 +1,13 @@
 import hashlib
 from typing import Any, Tuple
-from minio import Minio
+import boto3
+from botocore.client import Config
 
 import services
 from common.sipoc_model import SipocModelConfig, NodeObject
-from controllers.console.app.error import ProviderNotInitializeError, ProviderQuotaExceededError
-from controllers.service_api.app.error import ProviderModelCurrentlyNotSupportError
-from core.errors.error import ProviderTokenNotInitError, QuotaExceededError, ModelCurrentlyNotSupportError
 from models import db, UploadFile, Document
 from services.dataset_service import DocumentService
 from services.entities.knowledge_entities.knowledge_entities import KnowledgeConfig
-from services.errors.file import FileTooLargeError, UnsupportedFileTypeError
 from services.file_service import FileService
 
 from flask_login import current_user
@@ -257,25 +254,36 @@ class SipocService:
         secret_key_test = "F3xWGSfl2B6xqCo5EReTiUnjHG6fYEVFZ4LX8jh2"
         bucket_name_test = "cbrain-evolve"
 
-        client = Minio(endpoint_test, access_key=access_key_test, secret_key=secret_key_test, secure=False)
-
         filename = file_path.split("/")[-1]
 
-        try:
-            # get file info
-            obj_info = client.stat_object(bucket_name_test, file_path)
-            print(obj_info)
+        s3 = boto3.client(
+            's3',
+            endpoint_url=endpoint_test,
+            aws_access_key_id=access_key_test,
+            aws_secret_access_key=secret_key_test,
+            config=Config(signature_version='s3v4')
+        )
 
-            print(obj_info.size)
-            print(obj_info.content_type)
-            print(obj_info.last_modified)
-            print(obj_info.etag)
-            response = client.get_object(bucket_name=bucket_name_test, object_name=file_path)
-            filehash = hashlib.sha3_256(response.data).hexdigest()
-            return response.data, filename, obj_info.content_type, filehash, obj_info.size
+        try:
+            # # 下载文件
+            # s3.download_file(
+            #     Bucket=bucket_name_test,
+            #     Key=file_path,
+            #     Filename=local_file_path
+            # )
+            # print(f"文件下载成功: {minio_object_name} -> {local_file_path}")
+            # 获取文件元数据
+            obj_info = s3.head_object(Bucket=bucket_name_test, Key=file_path)
+            # print(obj_info)
+            # print(obj_info['ContentLength'])
+            # print(obj_info['ContentType'])
+            # print(obj_info['ETag'])
+            content = s3.get_object(Bucket=bucket_name_test, Key=file_path)['Body'].read()
+            filehash = hashlib.sha3_256(content).hexdigest()
+            return content, filename, obj_info['ContentType'], filehash, obj_info['ContentLength']
 
         except Exception as e:
-            raise e
+            print(f"下载失败: {str(e)}")
         pass
 
 
