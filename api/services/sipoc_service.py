@@ -72,8 +72,10 @@ class SipocService:
         :return:
         """
         #  TODO
-        if not output_kv:
+        if not output_kv or not sipoc_config.modelGenerate:
             return sipoc_config
+        for outputNode in sipoc_config.modelGenerate.outputNodes:
+            SipocService.fillup_node_kv(outputNode, 'gen_output', output_kv)
         return sipoc_config
 
     @staticmethod
@@ -107,6 +109,29 @@ class SipocService:
 
         return sipoc_kv
 
+    @staticmethod
+    def fillup_node_kv(nodeObj: NodeObject, prefix: str, output_kv: dict) -> NodeObject:
+        key = prefix + ':##node##' + nodeObj.label
+        if nodeObj.serviceProperty:
+            for serviceProperty in nodeObj.serviceProperty:
+                if not serviceProperty.name:
+                    continue
+                # input:##node##xx_label.##prop##xx_prop
+                key1 = key + '.##prop##' + serviceProperty.name
+                if key1 in output_kv:
+                    serviceProperty.value = output_kv[key1]
+        if nodeObj.subNodes:
+            for subNode in nodeObj.subNodes:
+                key1 = key + '.##edge##' + subNode.relateEdge + '##' + subNode.label
+                if subNode.serviceProperty:
+                    for serviceProperty in subNode.serviceProperty:
+                        if not serviceProperty.name:
+                            continue
+                        # input:##node##xx_label.##edge##xx_edge##xx_label.##prop##xx_prop
+                        key2 = key1 + '.##prop##' + serviceProperty.name
+                        if key2 in output_kv:
+                            serviceProperty.value = output_kv[key2]
+        return nodeObj
 
     @staticmethod
     def is_file_kv(key: str, value: Any):
