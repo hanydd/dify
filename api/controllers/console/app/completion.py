@@ -103,6 +103,7 @@ class ChatMessageApi(Resource):
     def post(self, app_model):
         parser = reqparse.RequestParser()
         parser.add_argument("inputs", type=dict, required=True, location="json")
+        parser.add_argument("sipoc_config", type=dict, required=True, location="json")
         parser.add_argument("query", type=str, required=True, location="json")
         parser.add_argument("files", type=list, required=False, location="json")
         parser.add_argument("model_config", type=dict, required=True, location="json")
