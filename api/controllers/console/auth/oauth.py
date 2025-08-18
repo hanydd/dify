@@ -10,41 +10,25 @@ from werkzeug.exceptions import Unauthorized
 
 from configs import dify_config
 from constants.languages import languages
-from events.tenant_event import tenant_was_created
 from extensions.ext_database import db
 from libs.datetime_utils import naive_utc_now
 from libs.helper import extract_remote_ip
-from libs.oauth import GitHubOAuth, GoogleOAuth, OAuthUserInfo
+from libs.oauth import CbrainOAuth, OAuthUserInfo
 from models import Account
 from models.account import AccountStatus
 from services.account_service import AccountService, RegisterService, TenantService
 from services.errors.account import AccountNotFoundError, AccountRegisterError
 from services.errors.workspace import WorkSpaceNotAllowedCreateError, WorkSpaceNotFoundError
 from services.feature_service import FeatureService
-
 from .. import api
 
 
 def get_oauth_providers():
     with current_app.app_context():
-        if not dify_config.GITHUB_CLIENT_ID or not dify_config.GITHUB_CLIENT_SECRET:
-            github_oauth = None
-        else:
-            github_oauth = GitHubOAuth(
-                client_id=dify_config.GITHUB_CLIENT_ID,
-                client_secret=dify_config.GITHUB_CLIENT_SECRET,
-                redirect_uri=dify_config.CONSOLE_API_URL + "/console/api/oauth/authorize/github",
-            )
-        if not dify_config.GOOGLE_CLIENT_ID or not dify_config.GOOGLE_CLIENT_SECRET:
-            google_oauth = None
-        else:
-            google_oauth = GoogleOAuth(
-                client_id=dify_config.GOOGLE_CLIENT_ID,
-                client_secret=dify_config.GOOGLE_CLIENT_SECRET,
-                redirect_uri=dify_config.CONSOLE_API_URL + "/console/api/oauth/authorize/google",
-            )
+        cbrain_oauth = CbrainOAuth(client_id="", client_secret="",
+                                   redirect_uri=dify_config.CONSOLE_API_URL + "/console/api/oauth/authorize/cbrain")
 
-        OAUTH_PROVIDERS = {"github": github_oauth, "google": google_oauth}
+        OAUTH_PROVIDERS = {"cbrain": cbrain_oauth}
         return OAUTH_PROVIDERS
 
 
@@ -77,7 +61,7 @@ class OAuthCallback(Resource):
 
         try:
             token = oauth_provider.get_access_token(code)
-            user_info = oauth_provider.get_user_info(token)
+            user_info = oauth_provider.get_user_info(token, **request.args)
         except requests.exceptions.RequestException as e:
             error_text = e.response.text if e.response else str(e)
             logging.exception("An error occurred during the OAuth process with %s: %s", provider, error_text)
@@ -153,10 +137,7 @@ def _generate_account(provider: str, user_info: OAuthUserInfo):
             if not FeatureService.get_system_features().is_allow_create_workspace:
                 raise WorkSpaceNotAllowedCreateError()
             else:
-                new_tenant = TenantService.create_tenant(f"{account.name}'s Workspace")
-                TenantService.create_tenant_member(new_tenant, account, role="owner")
-                account.current_tenant = new_tenant
-                tenant_was_created.send(new_tenant)
+                RegisterService.create_default_tenant(account=account)
 
     if not account:
         if not FeatureService.get_system_features().is_allow_register:

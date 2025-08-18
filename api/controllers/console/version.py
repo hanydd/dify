@@ -15,7 +15,7 @@ class VersionApi(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument("current_version", type=str, required=True, location="args")
         args = parser.parse_args()
-        check_update_url = dify_config.CHECK_UPDATE_URL
+        check_update_url = None
 
         result = {
             "version": dify_config.project.version,

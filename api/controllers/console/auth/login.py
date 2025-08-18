@@ -210,10 +210,7 @@ class EmailCodeLoginApi(Resource):
                 if not FeatureService.get_system_features().is_allow_create_workspace:
                     raise NotAllowedCreateWorkspace()
                 else:
-                    new_tenant = TenantService.create_tenant(f"{account.name}'s Workspace")
-                    TenantService.create_tenant_member(new_tenant, account, role="owner")
-                    account.current_tenant = new_tenant
-                    tenant_was_created.send(new_tenant)
+                    RegisterService.create_default_tenant(account)
 
         if account is None:
             try:
