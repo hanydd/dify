@@ -3,6 +3,7 @@ import time
 from collections.abc import Generator, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Optional, Union
 
+import app
 from core.app.app_config.entities import ExternalDataVariableEntity, PromptTemplateEntity
 from core.app.apps.base_app_queue_manager import AppQueueManager, PublishFrom
 from core.app.entities.app_invoke_entities import (
@@ -104,6 +105,7 @@ class AppRunner:
         if prompt_template_entity.prompt_type == PromptTemplateEntity.PromptType.SIMPLE:
             prompt_transform: Union[SimplePromptTransform, AdvancedPromptTransform]
             prompt_transform = SimplePromptTransform()
+            #app_record.app_model_config.user_input_form.to_dict()
             prompt_messages, stop = prompt_transform.get_prompt(
                 app_mode=AppMode.value_of(app_record.mode),
                 prompt_template_entity=prompt_template_entity,
