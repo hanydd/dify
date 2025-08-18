@@ -4,12 +4,12 @@ FILL_DOC_PROMPT_TEMPLATE = """
 以下是示例：
 
 
-信息数据来源，其中信息来源中的格式的开头是该条信息的类型，输入（<input>）还是控制(<control>)等，<node>后面跟的是节点的名称，<prop>后面跟的是“属性名=属性值”：
-<input>:<node>supplier.<prop>name = "沈飞民机"
-<input>:<node>supplier.<prop>introduce = "沈飞民机公司介绍.pdf"
-<input>:<node>supplier.<prop>bid_documents = "沈飞民机投标文件.pdf"
-<control>:<node>supplier.<edge>produce_addr:address.<prop>postcode="123213"
-<control>:<node>supplier.<edge>produce_addr:address.<prop>postcode="123213"
+信息数据来源，其中信息来源中的格式的开头是该条信息的类型，输入（input）还是控制(##control##)等，##node##后面跟的是节点的名称，##prop##后面跟的是“属性名=属性值”：
+input:##node##supplier.##prop##name = "沈飞民机"
+input:##node##supplier.##prop##introduce = "沈飞民机公司介绍.pdf"
+input:##node##supplier.##prop##bid_documents = "沈飞民机投标文件.pdf"
+##control##:##node##supplier.##edge##produce_addr:address.##prop##postcode="123213"
+##control##:##node##supplier.##edge##produce_addr:address.##prop##postcode="123213"
 
 
 用户填写要求：请帮我写一份与沈飞民机关于机翼采购的合同。
@@ -208,9 +208,9 @@ FILL_DOC_PROMPT_TEMPLATE = """
 
 
 以下是真实场景：
-待完成的文档：{{#doc_list_str#}}
+待完成的文档：{{#output_results#}}
 信息数据来源:
-{{#key_values#}}
+{{#input_key_values#}}
 用户填写要求：{{#question#}}
 文档生成结果首尾的````禁止遗漏，文档结果：
 """

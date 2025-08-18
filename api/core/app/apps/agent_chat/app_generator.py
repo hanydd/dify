@@ -121,6 +121,7 @@ class AgentChatAppGenerator(MessageBasedAppGenerator):
                     app_model_config = SipocService.handle_sipoc_file(k, file_url, app_model_config)
                 else:
                     inputs[k] = v
+            inputs["sipoc_config"] = sipoc_config
 
         # validate override model config
         override_model_config_dict = None

@@ -54,7 +54,6 @@ class SimplePromptTransform(PromptTransform):
         image_detail_config: Optional[ImagePromptMessageContent.DETAIL] = None,
     ) -> tuple[list[PromptMessage], Optional[list[str]]]:
         inputs = {key: str(value) for key, value in inputs.items()}
-
         model_mode = ModelMode(model_config.mode)
         if model_mode == ModelMode.CHAT:
             prompt_messages, stops = self._get_chat_model_prompt_messages(
@@ -94,20 +93,19 @@ class SimplePromptTransform(PromptTransform):
         histories: Optional[str] = None,
     ) -> tuple[str, dict]:
         # get prompt template
-        prompt_template_config = self.get_prompt_template(
-            app_mode=app_mode,
-            provider=model_config.provider,
-            model=model_config.model,
-            pre_prompt=pre_prompt,
-            has_context=context is not None,
-            query_in_prompt=query is not None,
-            with_memory_prompt=histories is not None,
-        )
+        # prompt_template_config = self.get_prompt_template(
+        #     app_mode=app_mode,
+        #     provider=model_config.provider,
+        #     model=model_config.model,
+        #     pre_prompt=pre_prompt,
+        #     has_context=context is not None,
+        #     query_in_prompt=query is not None,
+        #     with_memory_prompt=histories is not None,
+        # )
 
-        # todo 做一下这里scene_type的格式转换
         prompt_template_config = self.get_prompt_template_by_scene_type(
             app_mode=app_mode,
-            scene_type=model_config.model_config["scene_type"],
+            scene_type=self.get_scene_type(self, model_config),
             inputs=inputs,
             provider=model_config.provider,
             model=model_config.model,
@@ -416,25 +414,66 @@ class SimplePromptTransform(PromptTransform):
         处理pre_prompt模板
         :return: 处理后的模板字符串 + 提取的占位符变量列表
         """
-        import re  # 假设已在文件顶部导入，此处仅为示意
+        import re
 
-        # 1. 复用已定义的正则表达式（与PromptTemplateParser保持一致）
+        # 1. 从inputs中提取以ctx_开头的键值对，构成input_key_values字典
+        input_key_values = {
+            key: value for key, value in inputs.items()
+            if key.startswith('ctx_')
+        }
+
+        # 2. 从inputs中提取以gen_开头的键值对，构成output_results字典
+        output_results = {
+            key: value for key, value in inputs.items()
+            if key.startswith('gen_')
+        }
+
+        output_related_information = inputs["sipoc_config"]
+        combined_info = {
+            "input_key_values": input_key_values,
+            "output_results": output_results,
+            "output_related_information": output_related_information
+        }
+
+
+        # 4. 复用已定义的正则表达式（与PromptTemplateParser保持一致）
         pattern = WITH_VARIABLE_TMPL_REGEX if with_variable_tmpl else REGEX
 
-        # 2. 定义替换函数：处理每个匹配到的占位符
+        # 5. 定义替换函数：处理每个匹配到的占位符
         def replace_placeholder(match: re.Match) -> str:
-            var_content = match.group(1)  # 获取变量内容（如"doc_list_str"、"#histories#"）
-            original_placeholder = match.group(0)  # 原始占位符（如"{{doc_list_str}}"、"{{#histories#}}"）
+            var_content = match.group(1)  # 获取变量内容
+            original_placeholder = match.group(0)  # 原始占位符
 
-            # 3. 处理特殊变量（带#的变量），去除#后作为key查找
+            # 6. 处理特殊变量（带#的变量），去除#后作为key查找
             input_key = var_content.strip("#")
-            if input_key in inputs:
-                return str(inputs[input_key])  # 替换为实际值
+            if input_key in combined_info:
+                return str(combined_info[input_key])  # 替换为实际值
             else:
                 return original_placeholder  # 未找到则保留原始占位符
 
-        # 4. 执行全局替换并统一格式
+        # 7. 执行全局替换并统一格式
         replaced_template = pattern.sub(replace_placeholder, template_str)
         return replaced_template.rstrip("\n") + "\n"
+
+    def get_scene_type(self, model_config: ModelConfigWithCredentialsEntity) -> SceneType:
+        """
+        从模型配置中解析并返回SceneType枚举值
+
+        :param model_config: 模型配置对象
+        :return: 转换后的SceneType枚举值（确保返回类型为SceneType）
+        """
+        # 从配置中获取原始场景类型字符串（默认为空）
+        scene_type_str: Optional[str] = model_config.model_config.get("scene_type")
+
+        # 处理空值情况
+        if not scene_type_str:
+            return SceneType.UNDEFINED
+
+        # 尝试转换为SceneType枚举
+        try:
+            return SceneType(scene_type_str)
+        except ValueError:
+            # 若字符串不在枚举范围内，返回未定义
+            return SceneType.UNDEFINED
 
 
