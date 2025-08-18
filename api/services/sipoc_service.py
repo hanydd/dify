@@ -32,15 +32,15 @@ class SipocService:
         if iorcConfig:
             if iorcConfig.inputNodes:
                 for inputNode in iorcConfig.inputNodes:
-                    node_kv = SipocService.generate_node_kv(inputNode, 'input')
+                    node_kv = SipocService.generate_node_kv(inputNode, 'ctx_input')
                     sipoc_kv.update(node_kv)
             if iorcConfig.outputNodes:
                 for outputNode in iorcConfig.outputNodes:
-                    node_kv = SipocService.generate_node_kv(outputNode, 'output')
+                    node_kv = SipocService.generate_node_kv(outputNode, 'ctx_output')
                     sipoc_kv.update(node_kv)
             if iorcConfig.controlNodes:
                 for controlNode in iorcConfig.controlNodes:
-                    node_kv = SipocService.generate_node_kv(controlNode, 'control')
+                    node_kv = SipocService.generate_node_kv(controlNode, 'ctx_control')
                     sipoc_kv.update(node_kv)
 
         return sipoc_kv
@@ -59,10 +59,22 @@ class SipocService:
         if iorcConfig:
             if iorcConfig.outputNodes:
                 for outputNode in iorcConfig.outputNodes:
-                    node_kv = SipocService.generate_node_kv(outputNode, 'output')
+                    node_kv = SipocService.generate_node_kv(outputNode, 'gen_output')
                     sipoc_kv.update(node_kv)
 
         return sipoc_kv
+
+    @staticmethod
+    def fillup_sipoc_output_kv(sipoc_config: SipocModelConfig, output_kv: dict) -> SipocModelConfig:
+        """
+        Generate sipoc kv from sipoc config，解析sipoc数据，转化为key，value字典
+        :param sipoc_config: sipoc config
+        :return:
+        """
+        #  TODO
+        if not output_kv:
+            return sipoc_config
+        return sipoc_config
 
     @staticmethod
     def generate_node_kv(nodeObj: NodeObject, prefix: str) -> dict:
