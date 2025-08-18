@@ -48,15 +48,12 @@ class CbrainOAuth(OAuth):
         return code
 
     def get_raw_user_info(self, token: str, **kwargs):
-        base_url = kwargs.get("host", self._CBRAIN_BASE_URL)
-        has_protocol = bool(urllib.parse.urlparse(base_url).scheme)
-        if  not has_protocol:
-            base_url = "http://" + base_url
+        base_url = self._CBRAIN_BASE_URL
         user_info_url = urllib.parse.urljoin(base_url, self._USER_INFO_URL)
-        headers = {"Authorization": f"Bearer {token}", "environment": kwargs.get("tenant")}
+        headers = {"Authorization": f"Bearer {token}", "environment": kwargs.get("environment")}
         response = requests.post(user_info_url, headers=headers)
         response_json = response.json()
-        print(response_json)
+        print("C大脑登录返回：", response_json)
         return response_json.get("data")
 
     def _transform_user_info(self, raw_info: dict) -> OAuthUserInfo:
