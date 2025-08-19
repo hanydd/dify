@@ -534,7 +534,7 @@ class AppModelConfig(Base):
             json.dumps(model_config["user_input_form"]) if model_config.get("user_input_form") else None
         )
         '''
-        self.user_input_form = process_user_input_form(model_config["user_input_form"])
+        self.user_input_form = process_user_input_form(model_config)
 
         self.dataset_query_variable = model_config.get("dataset_query_variable")
         self.pre_prompt = model_config["pre_prompt"]
