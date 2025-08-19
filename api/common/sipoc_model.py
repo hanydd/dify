@@ -1,29 +1,29 @@
 from dataclasses import dataclass
 from typing import List, Optional, Dict, Any
 
-@dataclass
-class ConfigData:
-    """ConfigData类"""
-    name: Optional[str] = None
-    label: Optional[str] = None
-    placeholder: Optional[str] = None
-    formStyle: Optional[str] = None
-    ifNecessary: Optional[str] = None
-    ifUnique: Optional[str] = None
-    defaultValue: Optional[Any] = None
-    rule: Optional[str] = None
-    regexText: Optional[str] = None
-    radioList: Optional[List[Dict[str, Any]]] = None
-    savePoint: Optional[bool] = None
-    pointNumber: Optional[int] = None
-    range: Optional[Dict[str, Any]] = None
-    dateType: Optional[str] = None
-    defaultValueType: Optional[str] = None
-    numberRules: Optional[List[Dict[str, Any]]] = None
-    formula: Optional[Dict[str, Any]] = None
-    userType: Optional[str] = None
-    valueFrom: Optional[str] = None
-    level: Optional[str] = None
+# @dataclass
+# class ConfigData:
+#     """ConfigData类"""
+#     name: Optional[str] = None
+#     label: Optional[str] = None
+#     placeholder: Optional[str] = None
+#     formStyle: Optional[str] = None
+#     ifNecessary: Optional[str] = None
+#     ifUnique: Optional[str] = None
+#     defaultValue: Optional[Any] = None
+#     rule: Optional[str] = None
+#     regexText: Optional[str] = None
+#     radioList: Optional[List[Dict[str, Any]]] = None
+#     savePoint: Optional[bool] = None
+#     pointNumber: Optional[int] = None
+#     range: Optional[Dict[str, Any]] = None
+#     dateType: Optional[str] = None
+#     defaultValueType: Optional[str] = None
+#     numberRules: Optional[List[Dict[str, Any]]] = None
+#     formula: Optional[Dict[str, Any]] = None
+#     userType: Optional[str] = None
+#     valueFrom: Optional[str] = None
+#     level: Optional[str] = None
 
 
 @dataclass
@@ -31,36 +31,39 @@ class ServicePropertyData:
     """ServicePropertyData类"""
     name: Optional[str] = None
     comment: Optional[str] = None
-    placeholder: Optional[str] = None
-    defaultValue: Optional[Any] = None
-    formStyle: Optional[str] = None
-    style: Optional[str] = None
-    dataType: Optional[str] = None
-    ifNecessary: Optional[str] = None
-    ifUnique: Optional[str] = None
-    relatedProperty: Optional[str] = None
-    config: Optional[ConfigData] = None
+    type: Optional[str] = None
     value: Optional[Any] = None
+    unit: Optional[str] = None
+    options: Optional[List[Any]] = None
+    # placeholder: Optional[str] = None
+    # defaultValue: Optional[Any] = None
+    # formStyle: Optional[str] = None
+    # style: Optional[str] = None
+    # dataType: Optional[str] = None
+    # ifNecessary: Optional[str] = None
+    # ifUnique: Optional[str] = None
+    # relatedProperty: Optional[str] = None
+    # config: Optional[ConfigData] = None
 
-@dataclass
-class SystemPropertyData:
-    """SystemPropertyData类"""
-    uuid: Optional[int] = None
-    name: Optional[str] = None
-    comment: Optional[str] = None
-    formStyle: Optional[str] = None
-    style: Optional[str] = None
-    dataType: Optional[str] = None
-    ifNecessary: Optional[str] = None
-    ifUnique: Optional[str] = None
-    config: Optional[ConfigData] = None
-    value: Optional[Any] = None
+# @dataclass
+# class SystemPropertyData:
+#     """SystemPropertyData类"""
+#     uuid: Optional[int] = None
+#     name: Optional[str] = None
+#     comment: Optional[str] = None
+#     formStyle: Optional[str] = None
+#     style: Optional[str] = None
+#     dataType: Optional[str] = None
+#     ifNecessary: Optional[str] = None
+#     ifUnique: Optional[str] = None
+#     config: Optional[ConfigData] = None
+#     value: Optional[Any] = None
 
 @dataclass
 class NodeObject:
     """NodeObject类"""
-    serviceProperty: Optional[List[ServicePropertyData]] = None
-    systemProperty: Optional[List[SystemPropertyData]] = None
+    property: Optional[List[ServicePropertyData]] = None
+    # systemProperty: Optional[List[SystemPropertyData]] = None
     label: Optional[str] = None
     comment: Optional[str] = None
     relateEdge: Optional[str] = None

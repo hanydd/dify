@@ -83,54 +83,50 @@ class SipocService:
 
         sipoc_kv = {}
         key = prefix + ':##node##' + nodeObj.label
-        if nodeObj.serviceProperty:
-            for serviceProperty in nodeObj.serviceProperty:
-                if not serviceProperty.name:
+        if nodeObj.property:
+            for prop in nodeObj.property:
+                if not prop.name:
                     continue
                 # input:##node##xx_label.##prop##xx_prop
-                key1 = key + '.##prop##' + serviceProperty.name
-                if serviceProperty.value:
-                    sipoc_kv[key1] = serviceProperty.value
-                else:
-                    sipoc_kv[key1] = serviceProperty.defaultValue
+                key1 = key + '.##prop##' + prop.name
+                if prop.value:
+                    sipoc_kv[key1] = prop.value
         if nodeObj.subNodes:
             for subNode in nodeObj.subNodes:
                 key1 = key + '.##edge##' + subNode.relateEdge + '##' + subNode.label
-                if subNode.serviceProperty:
-                    for serviceProperty in subNode.serviceProperty:
-                        if not serviceProperty.name:
+                if subNode.property:
+                    for prop in subNode.property:
+                        if not prop.name:
                             continue
                         # input:##node##xx_label.##edge##xx_edge##xx_label.##prop##xx_prop
-                        key2 = key1 + '.##prop##' + serviceProperty.name
-                        if serviceProperty.value:
-                            sipoc_kv[key2] = serviceProperty.value
-                        else:
-                            sipoc_kv[key2] = serviceProperty.defaultValue
+                        key2 = key1 + '.##prop##' + prop.name
+                        if prop.value:
+                            sipoc_kv[key2] = prop.value
 
         return sipoc_kv
 
     @staticmethod
     def fillup_node_kv(nodeObj: NodeObject, prefix: str, output_kv: dict) -> NodeObject:
         key = prefix + ':##node##' + nodeObj.label
-        if nodeObj.serviceProperty:
-            for serviceProperty in nodeObj.serviceProperty:
-                if not serviceProperty.name:
+        if nodeObj.property:
+            for prop in nodeObj.property:
+                if not prop.name:
                     continue
                 # input:##node##xx_label.##prop##xx_prop
-                key1 = key + '.##prop##' + serviceProperty.name
+                key1 = key + '.##prop##' + prop.name
                 if key1 in output_kv:
-                    serviceProperty.value = output_kv[key1]
+                    prop.value = output_kv[key1]
         if nodeObj.subNodes:
             for subNode in nodeObj.subNodes:
                 key1 = key + '.##edge##' + subNode.relateEdge + '##' + subNode.label
-                if subNode.serviceProperty:
-                    for serviceProperty in subNode.serviceProperty:
-                        if not serviceProperty.name:
+                if subNode.property:
+                    for prop in subNode.property:
+                        if not prop.name:
                             continue
                         # input:##node##xx_label.##edge##xx_edge##xx_label.##prop##xx_prop
-                        key2 = key1 + '.##prop##' + serviceProperty.name
+                        key2 = key1 + '.##prop##' + prop.name
                         if key2 in output_kv:
-                            serviceProperty.value = output_kv[key2]
+                            prop.value = output_kv[key2]
         return nodeObj
 
     @staticmethod
@@ -162,7 +158,6 @@ class SipocService:
 
         # 判断下载的文件是否已经存在，如果存在，则不重复上传，并且判断文件是否已经被知识库引用，如果引用，也不再继续创建知识库
         upload_file = db.session.query(UploadFile).filter(UploadFile.hash == filehash).first()
-
 
         if not upload_file:
             # 如果找不到文件，则上传文件并创建知识库
