@@ -301,19 +301,29 @@ class App(Base):
         return None
 
 
-def process_user_input_form(model_config: dict):
+def process_user_input_form(model_config: dict) -> Optional[str]:
+    """
+    处理用户输入表单（列表类型），追加sipoc_config字典元素
 
-    # 1. 确保user_input_form存在（若不存在则初始化为空字典）
-    user_input_form = model_config.get("user_input_form", {})
-    if not isinstance(user_input_form, dict):
-        raise ValueError("user_input_form must be a dictionary")
+    :param model_config: 模型配置字典
+    :return: 序列化后的用户输入表单JSON字符串，或None（若为空）
+    """
+    # 1. 获取user_input_form，默认值为空列表（因实际传入为list）
+    user_input_form = model_config.get("user_input_form", [])
 
-    # 4. 添加"sipoc_config"键值对到user_input_form
-    if model_config.get("sipoc_config"):
-        user_input_form["sipoc_config"] = model_config.get("sipoc_config")
+    # 2. 校验类型：确保是列表（符合实际传入类型）
+    if not isinstance(user_input_form, list):
+        raise ValueError("user_input_form must be a list")
 
-    # 5. 更新model_config并序列化
+    # 3. 若存在sipoc_config，追加到列表中（作为新的字典元素）
+    sipoc_config = model_config.get("sipoc_config")
+    if sipoc_config is not None:
+        # 追加的元素是一个字典：{"sipoc_config": 对应的值}
+        user_input_form.append({"sipoc_config": sipoc_config})
+
+    # 4. 更新model_config并序列化
     model_config["user_input_form"] = user_input_form
+    # 若列表非空则返回JSON字符串，否则返回None
     return json.dumps(user_input_form) if user_input_form else None
 
 
