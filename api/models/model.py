@@ -567,7 +567,7 @@ class AppModelConfig(Base):
         self.file_upload = json.dumps(model_config.get("file_upload")) if model_config.get("file_upload") else None
 
         # 增加场景配置信息
-        self.update_configs_with_scene_type(self, model_config)
+        self.update_configs_with_scene_type(model_config)
 
         return self
 
