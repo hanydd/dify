@@ -8,6 +8,7 @@ from typing import Any, Literal, Union, overload
 from flask import Flask, current_app
 from pydantic import ValidationError
 
+from common.sipoc_model import SipocModelConfig
 from configs import dify_config
 from constants import UUID_NIL
 from core.app.app_config.easy_ui_based_app.model_config.converter import ModelConfigConverter
@@ -109,8 +110,16 @@ class AgentChatAppGenerator(MessageBasedAppGenerator):
         # get app model config
         app_model_config = self._get_app_model_config(app_model=app_model, conversation=conversation)
 
-        sipoc_config = args["sipoc_config"]
-        if sipoc_config:
+        #sipoc_config = args["sipoc_config"]
+        sipoc_config_dict = args["sipoc_config"]
+
+        if sipoc_config_dict:
+            try:
+                # 自动转换字典为SipocModelConfig实例，嵌套的modelContext会转为IORCConfig
+                sipoc_config = SipocModelConfig(**sipoc_config_dict)
+            except Exception as e:
+                raise ValueError(f"Invalid sipoc_config format: {e}")
+
             # generate sipoc kv
             sipoc_kv = SipocService.generate_sipoc_kv(sipoc_config, invoke_from != InvokeFrom.DEBUGGER)
 

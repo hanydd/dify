@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+#from dataclasses import dataclass
+from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 
 # @dataclass
@@ -26,15 +27,15 @@ from typing import List, Optional, Dict, Any
 #     level: Optional[str] = None
 
 
-@dataclass
-class ServicePropertyData:
-    """ServicePropertyData类"""
-    name: Optional[str] = None
-    comment: Optional[str] = None
-    type: Optional[str] = None
-    value: Optional[Any] = None
-    unit: Optional[str] = None
-    options: Optional[List[Any]] = None
+# @dataclass
+# class ServicePropertyData:
+#     """ServicePropertyData类"""
+#     name: Optional[str] = None
+#     comment: Optional[str] = None
+#     type: Optional[str] = None
+#     value: Optional[Any] = None
+#     unit: Optional[str] = None
+#     options: Optional[List[Any]] = None
     # placeholder: Optional[str] = None
     # defaultValue: Optional[Any] = None
     # formStyle: Optional[str] = None
@@ -59,8 +60,43 @@ class ServicePropertyData:
 #     config: Optional[ConfigData] = None
 #     value: Optional[Any] = None
 
-@dataclass
-class NodeObject:
+# @dataclass
+# class NodeObject:
+#     """NodeObject类"""
+#     property: Optional[List[ServicePropertyData]] = None
+#     # systemProperty: Optional[List[SystemPropertyData]] = None
+#     label: Optional[str] = None
+#     comment: Optional[str] = None
+#     relateEdge: Optional[str] = None
+#     subNodes: Optional[List['NodeObject']] = None  # 自引用类型
+#
+#
+# @dataclass
+# class IORCConfig:
+#     """IORCConfig类"""
+#     inputNodes: Optional[List[NodeObject]] = None  # sipoc的i
+#     outputNodes: Optional[List[NodeObject]] = None  # sipoc的o
+#     controlNodes: Optional[List[NodeObject]] = None  # sipoc的c
+#     resourceNodes: Optional[List[NodeObject]] = None # sipoc中的r
+#
+# @dataclass
+# class SipocModelConfig:
+#     """SipocModelConfig类"""
+#     modelContext: Optional[IORCConfig] = None  # 给dify的输入变量
+#     modelGenerate: Optional[IORCConfig] = None  # dify的生成变量
+#     modelContextKV: Optional[Dict[str, Any]] = None  # 给dify的输入变量转化为kv
+#     modelGenerateKV: Optional[Dict[str, Any]] = None  # dify的生成变量转化为kv
+
+class ServicePropertyData(BaseModel):
+    """ServicePropertyData类"""
+    name: Optional[str] = None
+    comment: Optional[str] = None
+    type: Optional[str] = None
+    value: Optional[Any] = None
+    unit: Optional[str] = None
+    options: Optional[List[Any]] = None
+
+class NodeObject(BaseModel):
     """NodeObject类"""
     property: Optional[List[ServicePropertyData]] = None
     # systemProperty: Optional[List[SystemPropertyData]] = None
@@ -69,17 +105,14 @@ class NodeObject:
     relateEdge: Optional[str] = None
     subNodes: Optional[List['NodeObject']] = None  # 自引用类型
 
-
-@dataclass
-class IORCConfig:
+class IORCConfig(BaseModel):
     """IORCConfig类"""
     inputNodes: Optional[List[NodeObject]] = None  # sipoc的i
     outputNodes: Optional[List[NodeObject]] = None  # sipoc的o
     controlNodes: Optional[List[NodeObject]] = None  # sipoc的c
     resourceNodes: Optional[List[NodeObject]] = None # sipoc中的r
 
-@dataclass
-class SipocModelConfig:
+class SipocModelConfig(BaseModel):
     """SipocModelConfig类"""
     modelContext: Optional[IORCConfig] = None  # 给dify的输入变量
     modelGenerate: Optional[IORCConfig] = None  # dify的生成变量
