@@ -383,6 +383,15 @@ class AccountService:
             account.status = AccountStatus.ACTIVE.value
             db.session.commit()
 
+        # 新增：检查是否需要创建默认工作空间（无任何工作空间时）
+        has_tenants = db.session.query(TenantAccountJoin).filter_by(
+            account_id=account.id
+        ).first() is not None
+        
+        if not has_tenants:
+            # 调用批量创建方法
+            TenantService.create_default_tenants(account)
+
         access_token = AccountService.get_account_jwt_token(account=account)
         refresh_token = _generate_refresh_token()
 
@@ -879,6 +888,44 @@ class TenantService:
         tenant.encrypt_public_key = generate_key_pair(tenant.id)
         db.session.commit()
         return tenant
+
+    @staticmethod
+    def create_default_tenants(account: Account):
+        """为用户创建多个默认工作空间"""
+        # 检查系统是否允许创建工作空间
+        if not FeatureService.get_system_features().is_allow_create_workspace:
+            raise WorkSpaceNotAllowedCreateError()
+        
+        # 检查工作空间数量限制
+        workspaces_limit = FeatureService.get_system_features().license.workspaces
+        if not workspaces_limit.is_available(len(dify_config.DEFAULT_WORKSPACES)):
+            raise WorkspacesLimitExceededError()
+        
+        # 批量创建预设工作空间
+        for idx, ws_name in enumerate(dify_config.DEFAULT_WORKSPACES):
+            # 避免名称重复（如用户手动创建过同名空间）
+            existing_tenant = db.session.query(Tenant).join(
+                TenantAccountJoin, Tenant.id == TenantAccountJoin.tenant_id
+            ).filter(
+                Tenant.name == ws_name,
+                TenantAccountJoin.account_id == account.id
+            ).first()
+            
+            if not existing_tenant:
+                # 创建工作空间
+                tenant = TenantService.create_tenant(name=ws_name)
+                # 关联用户为所有者
+                TenantService.create_tenant_member(tenant, account, role="owner")
+                # 第一个工作空间设为当前活跃空间
+                if idx == 0:
+                    account.set_tenant_id(tenant.id)
+                    db.session.query(TenantAccountJoin).filter(
+                        TenantAccountJoin.tenant_id == tenant.id,
+                        TenantAccountJoin.account_id == account.id
+                    ).update({"current": True})
+                tenant_was_created.send(tenant)
+        
+        db.session.commit()
 
     @staticmethod
     def create_owner_tenant_if_not_exist(
