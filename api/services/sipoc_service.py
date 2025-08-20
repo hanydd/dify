@@ -1,5 +1,8 @@
 import hashlib
+import json
 from typing import Any, Tuple
+from urllib import request
+import requests
 import boto3
 from botocore.client import Config
 
@@ -325,10 +328,18 @@ class SipocService:
 
 
     @staticmethod
-    def convert_file_to_text(file_content: bytes) -> str:
+    def convert_file_to_text(file_content: bytes, file_name: str) -> bytes:
         """
         Convert file content to text, 将包含图片的文件，通过ocr等技术转化成文本文件
-        :param file_content:
-        :return:
         """
+        try:
+            payload = {
+                "file_flow": file_content,
+                "file_name": file_name
+            }
+            response = requests.post("http://172.16.23.103:5551/handle_files", json.dumps(payload))
+            file_bytes = response.json().get("file_bytes")
+            return file_bytes
+        except Exception as e:
+            print(f"转换失败: {str(e)}")
 
