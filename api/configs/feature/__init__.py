@@ -598,6 +598,11 @@ class AuthConfig(BaseSettings):
         default=None,
     )
 
+    DEFAULT_WORKSPACES: list[str] = Field(
+        description="多个默认工作空间名称",
+        default=["商飞智能工作空间", "商飞工作空间"],
+    )
+
     GITHUB_CLIENT_ID: Optional[str] = Field(
         description="GitHub OAuth client ID",
         default=None,
