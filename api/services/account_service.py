@@ -892,7 +892,7 @@ class TenantService:
             .order_by(TenantAccountJoin.id.asc())
             .first()
         )
-        logging.info(f"available tanent {available_ta}")
+        logging.info(f"available tenant {available_ta}")
 
         if available_ta:
             return
