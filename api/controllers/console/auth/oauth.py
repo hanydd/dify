@@ -116,25 +116,28 @@ class OAuthCallback(Resource):
                 account=account,
                 request_args=request.args
             )
-            
+
             # 构建返回URL，包含C大脑所需的参数
             redirect_url = f"{dify_config.CONSOLE_WEB_URL}?"
             param_pairs = []
             for key, value in cbrain_params.items():
                 if value is not None:
                     param_pairs.append(f"{key}={value}")
-            
+
             redirect_url += "&".join(param_pairs)
-            return redirect(redirect_url)
+            #return redirect(redirect_url)
         else:
             # 其他OAuth提供商保持原有逻辑
-            token_pair = AccountService.login(
-                account=account,
-                ip_address=extract_remote_ip(request),
-            )
-            return redirect(
-                f"{dify_config.CONSOLE_WEB_URL}?access_token={token_pair.access_token}&refresh_token={token_pair.refresh_token}"
-            )
+            pass
+        token_pair = AccountService.login(
+            account=account,
+            ip_address=extract_remote_ip(request),
+        )
+
+        #TODO 拼接 cbrain_params
+        return redirect(
+            f"{dify_config.CONSOLE_WEB_URL}oauth-callback?access_token={token_pair.access_token}&refresh_token={token_pair.refresh_token}"
+        )
 
 
 def _get_account_by_openid_or_email(provider: str, user_info: OAuthUserInfo) -> Optional[Account]:
@@ -154,14 +157,9 @@ def _generate_account(provider: str, user_info: OAuthUserInfo):
     if account:
         tenants = TenantService.get_join_tenants(account)
         if not tenants:
-            if not FeatureService.get_system_features().is_allow_create_workspace:
-                raise WorkSpaceNotAllowedCreateError()
-            else:
-                RegisterService.create_default_tenant(account=account)
+            RegisterService.create_default_tenant(account=account)
 
     if not account:
-        if not FeatureService.get_system_features().is_allow_register:
-            raise AccountNotFoundError()
         account_name = user_info.name or "Dify"
         account = RegisterService.register(
             email=user_info.email, name=account_name, password=None, open_id=user_info.id, provider=provider

@@ -64,27 +64,25 @@ class CbrainOAuth(OAuth):
     def get_cbrain_return_params(self, code: str, user_info: OAuthUserInfo, account: Any, request_args: Any) -> Dict[str, str]:
         """
         生成C大脑OAuth所需的返回参数
-        
+
         Args:
             code: OAuth授权码
             user_info: 用户信息
             account: 账户信息
             request_args: 请求参数
-            
+
         Returns:
             包含C大脑OAuth所需参数的字典
         """
         params = {}
-        
+
         # 登录相关参数
-        params["code"] = code  # c大脑token
-        params["currentUserld"] = user_info.id  # 账号
-        params["environment"] = request_args.get("environment")  # 租户
-        
+        params["cbrain_token"] = code  # c大脑token
+
         # 登录入口场景
         entry_point = request_args.get("entry_point", "1")  # 默认普通入口
         params["entry_point"] = entry_point
-        
+
         # 活动登录相关参数（如果存在）
         if entry_point == "2":  # 活动登录
             # 活动登录相关参数
@@ -94,13 +92,13 @@ class CbrainOAuth(OAuth):
             params["modelType"] = request_args.get("modelType")
             params["nodeId"] = request_args.get("nodeId")
             params["agent_id"] = request_args.get("agent_id")  # 需要跳转的智能体id
-        
+
         # 页面路径相关参数
         params["url"] = request_args.get("url", "/explore/apps")  # 默认跳转到智能体广场
-        
+
         # 智能体相关参数（如果存在）
         params["agentName"] = request_args.get("agentName")
         params["agentDescription"] = request_args.get("agentDescription")
-        
+
         # 过滤掉None值
         return {k: v for k, v in params.items() if v is not None}

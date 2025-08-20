@@ -387,7 +387,7 @@ class AccountService:
         has_tenants = db.session.query(TenantAccountJoin).filter_by(
             account_id=account.id
         ).first() is not None
-        
+
         if not has_tenants:
             # 调用批量创建方法
             TenantService.create_default_tenants(account)
@@ -892,16 +892,11 @@ class TenantService:
     @staticmethod
     def create_default_tenants(account: Account):
         """为用户创建多个默认工作空间"""
-        # 检查系统是否允许创建工作空间
-        if not FeatureService.get_system_features().is_allow_create_workspace:
-            raise WorkSpaceNotAllowedCreateError()
-        
-        # 检查工作空间数量限制
-        workspaces_limit = FeatureService.get_system_features().license.workspaces
-        if not workspaces_limit.is_available(len(dify_config.DEFAULT_WORKSPACES)):
-            raise WorkspacesLimitExceededError()
-        
+
+        # TODO 查询用户的所有租户
+
         # 批量创建预设工作空间
+        # TODO 根据新字段，保存C大脑租户id绑定关系，如果不存在绑定关系，则创建新工作空间
         for idx, ws_name in enumerate(dify_config.DEFAULT_WORKSPACES):
             # 避免名称重复（如用户手动创建过同名空间）
             existing_tenant = db.session.query(Tenant).join(
@@ -910,7 +905,7 @@ class TenantService:
                 Tenant.name == ws_name,
                 TenantAccountJoin.account_id == account.id
             ).first()
-            
+
             if not existing_tenant:
                 # 创建工作空间
                 tenant = TenantService.create_tenant(name=ws_name)
@@ -924,7 +919,7 @@ class TenantService:
                         TenantAccountJoin.account_id == account.id
                     ).update({"current": True})
                 tenant_was_created.send(tenant)
-        
+
         db.session.commit()
 
     @staticmethod
@@ -1280,6 +1275,12 @@ class RegisterService:
 
     @classmethod
     def create_default_tenant(cls, account: Account) -> None:
+        # TODO 注册时创建工作空间，把创建租户逻辑移动到这里
+        #  入参需要增加C大脑token，C大脑租户
+        # TODO 步骤
+        #  1. 查询C大脑用户的租户列表
+        #  2. 对于每个租户，查询是否存在公共空间，如果不存在，创建新的工作空间（需要新字段，写成通用方法；权限是editor）
+        #  3. 对于每个租户，查询是否存在当前用户的个人空间，如果不存在，创建新的个人工作空间（权限是owner）
         logging.info("加入默认空间")
         if dify_config.DEFAULT_TENANT_ID is not None:
             logging.info("加入默认空间" + dify_config.DEFAULT_TENANT_ID)
