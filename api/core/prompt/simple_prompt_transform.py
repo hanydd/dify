@@ -362,7 +362,7 @@ class SimplePromptTransform(PromptTransform):
         elif scene_type == SceneType.FILL_FORM:  # 表格生成场景
             base_template = FILL_TABLE_PROMPT_TEMPLATE
         else:
-            raise ValueError(f"不支持的场景类型: {scene_type}")
+            base_template = ""
         base_template = self.process_pre_prompt(base_template, inputs, False)
 
         # 2. 生成final_pre_prompt
@@ -376,8 +376,7 @@ class SimplePromptTransform(PromptTransform):
         prompt_rules = self._get_prompt_rule(
             app_mode=app_mode,
             provider=provider,
-            model=model,
-            scene_type=scene_type  # 正确传递当前场景类型
+            model=model
         )
 
 
@@ -428,7 +427,7 @@ class SimplePromptTransform(PromptTransform):
             if key.startswith('gen_')
         }
 
-        output_related_information = inputs["sipoc_config"]
+        output_related_information = inputs.get("sipoc_config", {})
         combined_info = {
             "input_key_values": input_key_values,
             "output_results": output_results,
