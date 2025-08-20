@@ -105,7 +105,7 @@ class SimplePromptTransform(PromptTransform):
 
         prompt_template_config = self.get_prompt_template_by_scene_type(
             app_mode=app_mode,
-            scene_type=self.get_scene_type(self, model_config),
+            scene_type=self.get_scene_type(model_config),
             inputs=inputs,
             provider=model_config.provider,
             model=model_config.model,
@@ -363,7 +363,7 @@ class SimplePromptTransform(PromptTransform):
             base_template = FILL_TABLE_PROMPT_TEMPLATE
         else:
             raise ValueError(f"不支持的场景类型: {scene_type}")
-        base_template = self.process_pre_prompt(self, base_template, inputs, False)
+        base_template = self.process_pre_prompt(base_template, inputs, False)
 
         # 2. 生成final_pre_prompt
         if pre_prompt:
