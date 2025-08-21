@@ -1,12 +1,14 @@
 import uuid
-from typing import cast
+from typing import cast, Optional
 
+from flask import request
 from flask_login import current_user
 from flask_restful import Resource, inputs, marshal, marshal_with, reqparse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from werkzeug.exceptions import BadRequest, Forbidden, abort
 
+from configs import dify_config
 from controllers.console import api
 from controllers.console.app.wraps import get_app_model
 from controllers.console.wraps import (
@@ -99,7 +101,6 @@ class AppListApi(Resource):
         parser.add_argument("icon_type", type=str, location="json")
         parser.add_argument("icon", type=str, location="json")
         parser.add_argument("icon_background", type=str, location="json")
-        parser.add_argument("entry_point", type=str, location="json")  # 新增：入口标识参数
         args = parser.parse_args()
 
         # The role of the current user in the ta table must be admin, owner, or editor
@@ -111,6 +112,46 @@ class AppListApi(Resource):
 
         app_service = AppService()
         app = app_service.create_app(current_user.current_tenant_id, args, current_user)
+
+        return app, 201
+
+
+class CbrainCreateAppApi(Resource):
+    @marshal_with(app_detail_fields)
+    def post(self):
+        """Create app From Cbrain"""
+        parser = reqparse.RequestParser()
+        parser.add_argument("name", type=str, required=True, location="json")
+        parser.add_argument("description", type=str, location="json")
+        parser.add_argument("mode", type=str, choices=ALLOW_CREATE_APP_MODES, location="json")
+        parser.add_argument("icon_type", type=str, location="json")
+        parser.add_argument("icon", type=str, location="json")
+        parser.add_argument("icon_background", type=str, location="json")
+        parser.add_argument("activityUuid", type=str, required=True, location="json")
+        parser.add_argument("procedureVersionId", type=str, required=True, location="json")
+        parser.add_argument("modelType", type=str, required=True, location="json")
+        parser.add_argument("procedureId", type=str, required=True, location="json")
+        parser.add_argument("valueChainId", type=str, required=True, location="json")
+        parser.add_argument("valueFlowVersionId", type=str, required=True, location="json")
+        args = parser.parse_args()
+
+        if "mode" not in args or args["mode"] is None:
+            args["mode"] = "agent-chat"
+
+        # 从请求头获取C大脑用户和租户
+        cbrain_user = request.headers.get("currentUserId")
+        cbrain_tenant = request.headers.get("Environment")
+        cbrain_token = request.headers.get("Authorization")
+        # 查询dify中绑定的用户和租户
+        account: Optional[Account] = Account.get_by_openid("cbrain", cbrain_user)
+        if account is None:
+            # TODO 创建用户
+            pass
+        # TODO 获取c大脑租户对应的租户
+        tenant_id = dify_config.DEFAULT_TENANT_ID
+
+        app_service = AppService()
+        app = app_service.create_app(tenant_id, args, account)
 
         return app, 201
 
@@ -362,3 +403,4 @@ api.add_resource(AppIconApi, "/apps/<uuid:app_id>/icon")
 api.add_resource(AppSiteStatus, "/apps/<uuid:app_id>/site-enable")
 api.add_resource(AppApiStatus, "/apps/<uuid:app_id>/api-enable")
 api.add_resource(AppTraceApi, "/apps/<uuid:app_id>/trace")
+api.add_resource(CbrainCreateAppApi, "/apps/createFromActivity")

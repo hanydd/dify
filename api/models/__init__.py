@@ -34,6 +34,7 @@ from .model import (
     App,
     AppAnnotationHitHistory,
     AppAnnotationSetting,
+    AppCustomConfig,
     AppMCPServer,
     AppMode,
     AppModelConfig,
@@ -103,6 +104,7 @@ __all__ = [
     "App",
     "AppAnnotationHitHistory",
     "AppAnnotationSetting",
+    "AppCustomConfig",
     "AppDatasetJoin",
     "AppMCPServer",  # Added
     "AppMode",
