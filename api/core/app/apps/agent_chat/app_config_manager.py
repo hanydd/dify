@@ -152,12 +152,39 @@ class AgentChatAppConfigManager(BaseAppConfigManager):
         )
         related_config_keys.extend(current_related_config_keys)
 
+        # sipoc
+        config, current_related_config_keys = cls.validate_sipoc_and_set_defaults(
+            config
+        )
+        related_config_keys.extend(current_related_config_keys)
+
+        # scene_type
+        config, current_related_config_keys = cls.validate_scene_and_set_defaults(
+            config
+        )
+        related_config_keys.extend(current_related_config_keys)
+
         related_config_keys = list(set(related_config_keys))
 
         # Filter out extra parameters
         filtered_config = {key: config.get(key) for key in related_config_keys}
 
         return filtered_config
+
+    @classmethod
+    def validate_sipoc_and_set_defaults(cls, config: Mapping[str, Any]) -> tuple[dict, dict]:
+        if not config.get("sipoc_config"):
+            config["sipoc_config"] = {}
+
+        if not isinstance(config["sipoc_config"], dict):
+            raise ValueError("sipoc_config must be a dict of objects")
+
+        return dict(config), ["sipoc_config"]
+
+    @classmethod
+    def validate_scene_and_set_defaults(cls, config: Mapping[str, Any]) -> tuple[dict, dict]:
+        return dict(config), ["scene_type"]
+
 
     @classmethod
     def validate_agent_mode_and_set_defaults(cls, tenant_id: str, config: dict) -> tuple[dict, list[str]]:

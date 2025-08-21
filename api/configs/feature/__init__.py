@@ -583,6 +583,26 @@ class AuthConfig(BaseSettings):
         default="/console/api/oauth/authorize",
     )
 
+    CBRAIN_BASE_URL: str = Field(
+        description="C大脑获取用户信息接口",
+        default="http://10.230.8.88",
+    )
+
+    CBRAIN_USER_INFO_URL: str = Field(
+        description="C大脑获取用户信息接口",
+        default="/cbrain-gateway/cbrain-portal-server/application/userLogin/userInfo",
+    )
+
+    DEFAULT_TENANT_ID: str = Field(
+        description="Default tenant id",
+        default="",
+    )
+
+    DEFAULT_WORKSPACES: list[str] = Field(
+        description="多个默认工作空间名称",
+        default=["商飞智能工作空间", "商飞工作空间"],
+    )
+
     GITHUB_CLIENT_ID: Optional[str] = Field(
         description="GitHub OAuth client ID",
         default=None,
@@ -942,11 +962,11 @@ class LoginConfig(BaseSettings):
     )
     ALLOW_REGISTER: bool = Field(
         description="whether to enable register",
-        default=False,
+        default=True,
     )
     ALLOW_CREATE_WORKSPACE: bool = Field(
         description="whether to enable create workspace",
-        default=False,
+        default=True,
     )
 
 

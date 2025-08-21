@@ -18,11 +18,8 @@ from core.model_runtime.entities.message_entities import (
 )
 from core.prompt.entities.advanced_prompt_entities import MemoryConfig
 from core.prompt.prompt_transform import PromptTransform
-from core.prompt.utils.prompt_template_parser import PromptTemplateParser, WITH_VARIABLE_TMPL_REGEX, REGEX
-from models.enums import SceneType
+from core.prompt.utils.prompt_template_parser import PromptTemplateParser
 from models.model import AppMode
-from core.prompt.prompt_templates.fill_doc_prompt_template import FILL_DOC_PROMPT_TEMPLATE
-from core.prompt.prompt_templates.fill_table_prompt_template import FILL_TABLE_PROMPT_TEMPLATE
 
 if TYPE_CHECKING:
     from core.file.models import File
@@ -54,6 +51,7 @@ class SimplePromptTransform(PromptTransform):
         image_detail_config: Optional[ImagePromptMessageContent.DETAIL] = None,
     ) -> tuple[list[PromptMessage], Optional[list[str]]]:
         inputs = {key: str(value) for key, value in inputs.items()}
+
         model_mode = ModelMode(model_config.mode)
         if model_mode == ModelMode.CHAT:
             prompt_messages, stops = self._get_chat_model_prompt_messages(
@@ -93,20 +91,8 @@ class SimplePromptTransform(PromptTransform):
         histories: Optional[str] = None,
     ) -> tuple[str, dict]:
         # get prompt template
-        # prompt_template_config = self.get_prompt_template(
-        #     app_mode=app_mode,
-        #     provider=model_config.provider,
-        #     model=model_config.model,
-        #     pre_prompt=pre_prompt,
-        #     has_context=context is not None,
-        #     query_in_prompt=query is not None,
-        #     with_memory_prompt=histories is not None,
-        # )
-
-        prompt_template_config = self.get_prompt_template_by_scene_type(
+        prompt_template_config = self.get_prompt_template(
             app_mode=app_mode,
-            scene_type=self.get_scene_type(model_config),
-            inputs=inputs,
             provider=model_config.provider,
             model=model_config.model,
             pre_prompt=pre_prompt,
@@ -114,8 +100,6 @@ class SimplePromptTransform(PromptTransform):
             query_in_prompt=query is not None,
             with_memory_prompt=histories is not None,
         )
-
-
 
         variables = {k: inputs[k] for k in prompt_template_config["custom_variable_keys"] if k in inputs}
 
@@ -341,139 +325,3 @@ class SimplePromptTransform(PromptTransform):
             return "common_completion"
         else:
             return "common_chat"
-
-    def get_prompt_template_by_scene_type(
-        self,
-        app_mode: AppMode,
-        scene_type: SceneType,
-        inputs: dict,
-        provider: str,
-        model: str,
-        pre_prompt: str,
-        has_context: bool,
-        query_in_prompt: bool,
-        with_memory_prompt: bool = False,
-    ) -> dict:
-
-        # 1. 根据场景类型选择基础模板，外部传入的pre_prompt优先于默认模板
-        base_template = ""
-        if scene_type == SceneType.GENERATE_DOCUMENT:  # 文档生成场景
-            base_template = FILL_DOC_PROMPT_TEMPLATE
-        elif scene_type == SceneType.FILL_FORM:  # 表格生成场景
-            base_template = FILL_TABLE_PROMPT_TEMPLATE
-        else:
-            raise ValueError(f"不支持的场景类型: {scene_type}")
-        base_template = self.process_pre_prompt(base_template, inputs, False)
-
-        # 2. 生成final_pre_prompt
-        if pre_prompt:
-            # 去除两端空行后拼接，避免多余空白
-            final_pre_prompt = f"{pre_prompt.rstrip()}\n\n{base_template.lstrip()}"
-        else:
-            final_pre_prompt = base_template
-
-        # 3. 获取提示词规则（修复场景类型参数传递）
-        prompt_rules = self._get_prompt_rule(
-            app_mode=app_mode,
-            provider=provider,
-            model=model,
-            scene_type=scene_type  # 正确传递当前场景类型
-        )
-
-
-        custom_variable_keys = []
-        special_variable_keys = []
-
-        prompt = ""
-        for order in prompt_rules["system_prompt_orders"]:
-            if order == "context_prompt" and has_context:
-                prompt += prompt_rules["context_prompt"]
-                special_variable_keys.append("#context#")
-            elif order == "pre_prompt" and final_pre_prompt:
-                pre_prompt_template = PromptTemplateParser(template=pre_prompt)
-                custom_variable_keys = pre_prompt_template.variable_keys
-            elif order == "histories_prompt" and with_memory_prompt:
-                prompt += prompt_rules["histories_prompt"]
-                special_variable_keys.append("#histories#")
-
-        if query_in_prompt:
-            prompt += prompt_rules.get("query_prompt", "{{#query#}}")
-            special_variable_keys.append("#query#")
-
-        return {
-            "prompt_template": PromptTemplateParser(template=prompt),
-            "custom_variable_keys": custom_variable_keys,
-            "special_variable_keys": special_variable_keys,
-            "prompt_rules": prompt_rules,
-        }
-
-
-    # 结合预定的模版进行pre_prompt的处理
-    def process_pre_prompt(self, template_str: str, inputs: dict, with_variable_tmpl: bool = False) -> str:
-        """
-        处理pre_prompt模板
-        :return: 处理后的模板字符串 + 提取的占位符变量列表
-        """
-        import re
-
-        # 1. 从inputs中提取以ctx_开头的键值对，构成input_key_values字典
-        input_key_values = {
-            key: value for key, value in inputs.items()
-            if key.startswith('ctx_')
-        }
-
-        # 2. 从inputs中提取以gen_开头的键值对，构成output_results字典
-        output_results = {
-            key: value for key, value in inputs.items()
-            if key.startswith('gen_')
-        }
-
-        output_related_information = inputs["sipoc_config"]
-        combined_info = {
-            "input_key_values": input_key_values,
-            "output_results": output_results,
-            "output_related_information": output_related_information
-        }
-
-
-        # 4. 复用已定义的正则表达式（与PromptTemplateParser保持一致）
-        pattern = WITH_VARIABLE_TMPL_REGEX if with_variable_tmpl else REGEX
-
-        # 5. 定义替换函数：处理每个匹配到的占位符
-        def replace_placeholder(match: re.Match) -> str:
-            var_content = match.group(1)  # 获取变量内容
-            original_placeholder = match.group(0)  # 原始占位符
-
-            # 6. 处理特殊变量（带#的变量），去除#后作为key查找
-            input_key = var_content.strip("#")
-            if input_key in combined_info:
-                return str(combined_info[input_key])  # 替换为实际值
-            else:
-                return original_placeholder  # 未找到则保留原始占位符
-
-        # 7. 执行全局替换并统一格式
-        replaced_template = pattern.sub(replace_placeholder, template_str)
-        return replaced_template.rstrip("\n") + "\n"
-
-    def get_scene_type(self, model_config: ModelConfigWithCredentialsEntity) -> SceneType:
-        """
-        从模型配置中解析并返回SceneType枚举值
-
-        :param model_config: 模型配置对象
-        :return: 转换后的SceneType枚举值（确保返回类型为SceneType）
-        """
-        # 从配置中获取原始场景类型字符串（默认为空）
-        scene_type_str: Optional[str] = model_config.model_config.get("scene_type")
-
-        # 处理空值情况
-        if not scene_type_str:
-            return SceneType.UNDEFINED
-
-        # 尝试转换为SceneType枚举
-        try:
-            return SceneType(scene_type_str)
-        except ValueError:
-            # 若字符串不在枚举范围内，返回未定义
-            return SceneType.UNDEFINED
-
-

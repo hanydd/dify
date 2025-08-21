@@ -30,3 +30,12 @@ class MessageStatus(StrEnum):
 
     NORMAL = "normal"
     ERROR = "error"
+
+
+class SceneType(StrEnum):
+    """
+    Scene Type Enum
+    """
+    GENERATE_DOCUMENT = "生成文档"
+    FILL_FORM = "填表单"
+    UNDEFINED = "未定义"

@@ -6,6 +6,7 @@ from datetime import datetime
 from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Any, Literal, Optional, cast
 
+from common.sipoc_model import SipocModelConfig
 from core.plugin.entities.plugin import GenericProviderID
 from core.tools.entities.tool_entities import ToolProviderType
 from core.tools.signature import sign_tool_file
@@ -300,6 +301,32 @@ class App(Base):
         return None
 
 
+def process_user_input_form(model_config: dict) -> Optional[str]:
+    """
+    处理用户输入表单（列表类型），追加sipoc_config字典元素
+
+    :param model_config: 模型配置字典
+    :return: 序列化后的用户输入表单JSON字符串，或None（若为空）
+    """
+    # 1. 获取user_input_form，默认值为空列表（因实际传入为list）
+    user_input_form = model_config.get("user_input_form", [])
+
+    # 2. 校验类型：确保是列表（符合实际传入类型）
+    if not isinstance(user_input_form, list):
+        raise ValueError("user_input_form must be a list")
+
+    # 3. 若存在sipoc_config，追加到列表中（作为新的字典元素）
+    sipoc_config = model_config.get("sipoc_config")
+    if sipoc_config is not None:
+        # 追加的元素是一个字典：{"sipoc_config": 对应的值}
+        user_input_form.append({"sipoc_config": sipoc_config})
+
+    # 4. 更新model_config并序列化
+    model_config["user_input_form"] = user_input_form
+    # 若列表非空则返回JSON字符串，否则返回None
+    return json.dumps(user_input_form) if user_input_form else None
+
+
 class AppModelConfig(Base):
     __tablename__ = "app_model_configs"
     __table_args__ = (db.PrimaryKeyConstraint("id", name="app_model_config_pkey"), db.Index("app_app_id_idx", "app_id"))
@@ -476,6 +503,19 @@ class AppModelConfig(Base):
             "file_upload": self.file_upload_dict,
         }
 
+    def update_configs_with_scene_type(self, model_config):
+        """
+        根据传入的 model_config 更新 configs 字段，将 scene_type 加入其中
+        :param model_config: 包含可能有 scene_type 键值对的字典
+        """
+        # 先获取当前已有的 configs 数据，如果为 None 则初始化为空字典
+        current_configs = self.configs if self.configs is not None else {}
+        scene_type_value = model_config.get("scene_type")
+        if scene_type_value is not None:
+            current_configs["scene_type"] = scene_type_value
+            # 将更新后的字典写回 configs 字段
+            self.configs = current_configs
+
     def from_model_config_dict(self, model_config: Mapping[str, Any]):
         self.opening_statement = model_config.get("opening_statement")
         self.suggested_questions = (
@@ -498,9 +538,14 @@ class AppModelConfig(Base):
             json.dumps(model_config["external_data_tools"]) if model_config.get("external_data_tools") else None
         )
         self.model = json.dumps(model_config["model"]) if model_config.get("model") else None
+
+        '''
         self.user_input_form = (
             json.dumps(model_config["user_input_form"]) if model_config.get("user_input_form") else None
         )
+        '''
+        self.user_input_form = process_user_input_form(model_config)
+
         self.dataset_query_variable = model_config.get("dataset_query_variable")
         self.pre_prompt = model_config["pre_prompt"]
         self.agent_mode = json.dumps(model_config["agent_mode"]) if model_config.get("agent_mode") else None
@@ -520,6 +565,10 @@ class AppModelConfig(Base):
             json.dumps(model_config.get("dataset_configs")) if model_config.get("dataset_configs") else None
         )
         self.file_upload = json.dumps(model_config.get("file_upload")) if model_config.get("file_upload") else None
+
+        # 增加场景配置信息
+        self.update_configs_with_scene_type(model_config)
+
         return self
 
     def copy(self):

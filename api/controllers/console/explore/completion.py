@@ -102,6 +102,7 @@ class ChatApi(InstalledAppResource):
 
         parser = reqparse.RequestParser()
         parser.add_argument("inputs", type=dict, required=True, location="json")
+        parser.add_argument("sipoc_config", type=dict, required=False, location="json")
         parser.add_argument("query", type=str, required=True, location="json")
         parser.add_argument("files", type=list, required=False, location="json")
         parser.add_argument("conversation_id", type=uuid_value, location="json")
