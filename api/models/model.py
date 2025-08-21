@@ -392,6 +392,16 @@ class AppModelConfig(Base):
         return json.loads(self.model) if self.model else {}
 
     @property
+    def configs_dict(self) -> dict:
+        # 若configs是字典，直接返回；若是JSON字符串，则反序列化；否则返回空字典
+        if isinstance(self.configs, dict):
+            return self.configs
+        elif self.configs:
+            return json.loads(self.configs)
+        else:
+            return {}
+
+    @property
     def suggested_questions_list(self) -> list:
         return json.loads(self.suggested_questions) if self.suggested_questions else []
 
