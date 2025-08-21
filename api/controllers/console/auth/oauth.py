@@ -107,7 +107,12 @@ class OAuthCallback(Resource):
                 "?message=Workspace not found, please contact system admin to invite you to join in a workspace."
             )
 
-        # 对于C大脑OAuth，返回特定的参数而不是dify的token
+        token_pair = AccountService.login(
+            account=account,
+            ip_address=extract_remote_ip(request),
+        )
+
+        # 对于C大脑OAuth，拼接C大脑参数和dify的token参数
         if provider == "cbrain":
             # 获取C大脑OAuth的返回参数
             cbrain_params = oauth_provider.get_cbrain_return_params(
@@ -117,27 +122,26 @@ class OAuthCallback(Resource):
                 request_args=request.args
             )
 
-            # 构建返回URL，包含C大脑所需的参数
-            redirect_url = f"{dify_config.CONSOLE_WEB_URL}?"
+            # 构建返回URL，包含C大脑参数和dify的token参数
+            redirect_url = f"{dify_config.CONSOLE_WEB_URL}oauth-callback?"
             param_pairs = []
+            
+            # 添加dify的token参数
+            param_pairs.append(f"access_token={token_pair.access_token}")
+            param_pairs.append(f"refresh_token={token_pair.refresh_token}")
+            
+            # 添加C大脑的参数
             for key, value in cbrain_params.items():
                 if value is not None:
                     param_pairs.append(f"{key}={value}")
 
             redirect_url += "&".join(param_pairs)
-            #return redirect(redirect_url)
+            return redirect(redirect_url)
         else:
             # 其他OAuth提供商保持原有逻辑
-            pass
-        token_pair = AccountService.login(
-            account=account,
-            ip_address=extract_remote_ip(request),
-        )
-
-        #TODO 拼接 cbrain_params
-        return redirect(
-            f"{dify_config.CONSOLE_WEB_URL}oauth-callback?access_token={token_pair.access_token}&refresh_token={token_pair.refresh_token}"
-        )
+            return redirect(
+                f"{dify_config.CONSOLE_WEB_URL}oauth-callback?access_token={token_pair.access_token}&refresh_token={token_pair.refresh_token}"
+            )
 
 
 def _get_account_by_openid_or_email(provider: str, user_info: OAuthUserInfo) -> Optional[Account]:
