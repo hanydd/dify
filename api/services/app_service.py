@@ -18,7 +18,7 @@ from events.app_event import app_was_created
 from extensions.ext_database import db
 from libs.datetime_utils import naive_utc_now
 from models.account import Account
-from models.model import App, AppMode, AppModelConfig, Site
+from models.model import App, AppMode, AppModelConfig, Site, AppCustomConfig
 from models.tools import ApiToolProvider
 from services.enterprise.enterprise_service import EnterpriseService
 from services.feature_service import FeatureService
@@ -125,6 +125,16 @@ class AppService:
 
             default_model_config["model"] = json.dumps(default_model_dict)
 
+        # custom model config 自定义配置
+        custom_config = AppCustomConfig()
+        if "activityUuid" in args:
+            custom_config.activityUuid = args["activityUuid"]
+            custom_config.procedureVersionId = args["procedureVersionId"]
+            custom_config.modelType = args["modelType"]
+            custom_config.procedureId = args["procedureId"]
+            custom_config.valueChainId = args["valueChainId"]
+            custom_config.valueFlowVersionId = args["valueFlowVersionId"]
+
         app = App(**app_template["app"])
         app.name = args["name"]
         app.description = args.get("description", "")
@@ -151,6 +161,11 @@ class AppService:
 
             app.app_model_config_id = app_model_config.id
 
+        if custom_config:
+            custom_config.app_id = app.id
+            db.session.add(custom_config)
+            db.session.flush()
+
         db.session.commit()
 
         # 处理入口标识和标签创建
@@ -170,7 +185,7 @@ class AppService:
                     tag_id = tag.id
                 else:
                     tag_id = existing_tags[0].id
-                
+
                 # 绑定标签到App
                 binding_args = {
                     "tag_ids": [tag_id],
@@ -178,7 +193,7 @@ class AppService:
                     "type": "app"
                 }
                 TagService.save_tag_binding(binding_args)
-                
+
                 logging.info(f"Successfully created and bound 'c_brain' tag to app {app.id}")
             except Exception as e:
                 logging.error(f"Failed to create/bind 'c_brain' tag for app {app.id}: {str(e)}")

@@ -122,6 +122,11 @@ class App(Base):
         return None
 
     @property
+    def custom_config(self):
+        custom_config = db.session.query(AppCustomConfig).where(AppCustomConfig.app_id == self.id).first()
+        return custom_config
+
+    @property
     def workflow(self) -> Optional["Workflow"]:
         if self.workflow_id:
             from .workflow import Workflow
@@ -299,6 +304,23 @@ class App(Base):
                 return account.name
 
         return None
+
+
+class AppCustomConfig(Base):
+    __tablename__ = "app_custom_config"
+    __table_args__ = (db.PrimaryKeyConstraint("id", name="app_custom_config_pkey"),
+                      db.Index("config_app_id_idx", "app_id"))
+
+    id: Mapped[str] = mapped_column(StringUUID, server_default=db.text("uuid_generate_v4()"))
+    app_id: Mapped[str] = mapped_column(StringUUID)
+
+    # 过程模型配置
+    activityUuid: Mapped[str] = mapped_column(db.String(255))
+    procedureVersionId: Mapped[str] = mapped_column(db.String(255))
+    modelType: Mapped[str] = mapped_column(db.String(255))
+    procedureId: Mapped[Optional[str]] = mapped_column(db.String(255))
+    valueChainId = db.Column(db.String(255))
+    valueFlowVersionId: Mapped[Optional[str]] = mapped_column(db.String(255))
 
 
 def process_user_input_form(model_config: dict) -> Optional[str]:
