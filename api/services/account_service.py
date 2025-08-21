@@ -7,6 +7,10 @@ from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from typing import Any, Optional, cast
 
+# 配置日志
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -890,37 +894,169 @@ class TenantService:
         return tenant
 
     @staticmethod
-    def create_default_tenants(account: Account):
+    def create_default_tenants(account: Account, cbrain_token: Optional[str] = None, cbrain_tenant_list: Optional[list] = None):
         """为用户创建多个默认工作空间"""
-
-        # TODO 查询用户的所有租户
-
-        # 批量创建预设工作空间
-        # TODO 根据新字段，保存C大脑租户id绑定关系，如果不存在绑定关系，则创建新工作空间
-        for idx, ws_name in enumerate(dify_config.DEFAULT_WORKSPACES):
-            # 避免名称重复（如用户手动创建过同名空间）
-            existing_tenant = db.session.query(Tenant).join(
-                TenantAccountJoin, Tenant.id == TenantAccountJoin.tenant_id
-            ).filter(
-                Tenant.name == ws_name,
-                TenantAccountJoin.account_id == account.id
-            ).first()
-
-            if not existing_tenant:
-                # 创建工作空间
-                tenant = TenantService.create_tenant(name=ws_name)
-                # 关联用户为所有者
-                TenantService.create_tenant_member(tenant, account, role="owner")
-                # 第一个工作空间设为当前活跃空间
-                if idx == 0:
-                    account.set_tenant_id(tenant.id)
-                    db.session.query(TenantAccountJoin).filter(
-                        TenantAccountJoin.tenant_id == tenant.id,
+        try:
+            # 检查系统是否允许创建工作空间
+            if not FeatureService.get_system_features().is_allow_create_workspace:
+                raise WorkSpaceNotAllowedCreateError()
+            
+            # 查询用户的所有租户
+            existing_tenants = TenantService.get_join_tenants(account)
+            
+            logging.info(f"为用户 {account.id} 创建默认工作空间，现有租户数量: {len(existing_tenants)}")
+            if cbrain_tenant_list:
+                logging.info(f"C大脑租户列表: {len(cbrain_tenant_list)} 个租户")
+            
+            # 检查工作空间数量限制
+            workspaces_limit = FeatureService.get_system_features().license.workspaces
+            if cbrain_tenant_list and not workspaces_limit.is_available(len(cbrain_tenant_list)):
+                raise WorkspacesLimitExceededError()
+            
+            # 如果有C大脑租户信息，优先处理C大脑租户
+            if cbrain_tenant_list and isinstance(cbrain_tenant_list, list):
+                for cbrain_tenant_info in cbrain_tenant_list:
+                    # 使用C大脑返回的租户信息格式
+                    cbrain_tenant_id = cbrain_tenant_info.get("id")  # tenantId
+                    cbrain_tenant_name = cbrain_tenant_info.get("name", "")
+                    cbrain_tenant_desc = cbrain_tenant_info.get("description", "")
+                    
+                    # 如果租户名称为空，使用描述或生成默认名称
+                    if not cbrain_tenant_name:
+                        if cbrain_tenant_desc:
+                            cbrain_tenant_name = cbrain_tenant_desc
+                        else:
+                            cbrain_tenant_name = f"C大脑租户_{cbrain_tenant_id}"
+                    
+                    if not cbrain_tenant_id:
+                        continue
+                    
+                    # 检查是否已存在对应的Dify工作空间
+                    existing_tenant = db.session.query(Tenant).filter(
+                        Tenant.cbrain_tenant_id == cbrain_tenant_id,
                         TenantAccountJoin.account_id == account.id
-                    ).update({"current": True})
-                tenant_was_created.send(tenant)
+                    ).join(TenantAccountJoin, Tenant.id == TenantAccountJoin.tenant_id).first()
+                    
+                    if not existing_tenant:
+                        # 创建新的工作空间，绑定C大脑租户ID
+                        logging.info(f"为C大脑租户 {cbrain_tenant_id} ({cbrain_tenant_name}) 创建Dify工作空间")
+                        tenant = TenantService.create_tenant(name=cbrain_tenant_name)
+                        tenant.cbrain_tenant_id = cbrain_tenant_id
+                        db.session.commit()
+                        
+                        # 关联用户为所有者
+                        TenantService.create_tenant_member(tenant, account, role="owner")
+                        tenant_was_created.send(tenant)
+                        
+                        # 第一个工作空间设为当前活跃空间
+                        if not existing_tenants:
+                            account.set_tenant_id(tenant.id)
+                            db.session.query(TenantAccountJoin).filter(
+                                TenantAccountJoin.tenant_id == tenant.id,
+                                TenantAccountJoin.account_id == account.id
+                            ).update({"current": True})
+                            logging.info(f"设置工作空间 {tenant.id} 为当前活跃空间")
+                    else:
+                        logging.info(f"C大脑租户 {cbrain_tenant_id} 对应的Dify工作空间已存在: {existing_tenant.id}")
+            
+            # 批量创建预设工作空间（如果用户还没有任何工作空间）
+            if not existing_tenants and not cbrain_tenant_list:
+                # 使用更明确的配置引用
+                from configs.feature import AuthConfig
+                default_workspaces = AuthConfig.DEFAULT_WORKSPACES
+                for idx, ws_name in enumerate(default_workspaces):
+                    # 避免名称重复（如用户手动创建过同名空间）
+                    existing_tenant = db.session.query(Tenant).join(
+                        TenantAccountJoin, Tenant.id == TenantAccountJoin.tenant_id
+                    ).filter(
+                        Tenant.name == ws_name,
+                        TenantAccountJoin.account_id == account.id
+                    ).first()
 
-        db.session.commit()
+                    if not existing_tenant:
+                        # 创建工作空间
+                        tenant = TenantService.create_tenant(name=ws_name)
+                        # 关联用户为所有者
+                        TenantService.create_tenant_member(tenant, account, role="owner")
+                        # 第一个工作空间设为当前活跃空间
+                        if idx == 0:
+                            account.set_tenant_id(tenant.id)
+                            db.session.query(TenantAccountJoin).filter(
+                                TenantAccountJoin.tenant_id == tenant.id,
+                                TenantAccountJoin.account_id == account.id
+                            ).update({"current": True})
+                        tenant_was_created.send(tenant)
+
+            db.session.commit()
+            
+            # 最终检查用户的工作空间数量
+            final_tenants = TenantService.get_join_tenants(account)
+            logging.info(f"用户 {account.id} 创建工作空间完成，最终工作空间数量: {len(final_tenants)}")
+            
+        except Exception as e:
+            logging.error(f"创建默认工作空间失败: {str(e)}")
+            db.session.rollback()
+            raise
+
+    @staticmethod
+    def sync_cbrain_tenant_info(account: Account, cbrain_tenant_list: list):
+        """
+        同步C大脑租户信息到Dify工作空间
+        
+        Args:
+            account: 用户账户
+            cbrain_tenant_list: C大脑租户列表
+        """
+        try:
+            # 获取用户现有的工作空间
+            existing_tenants = TenantService.get_join_tenants(account)
+            logging.info(f"开始同步C大脑租户信息，用户现有工作空间数量: {len(existing_tenants)}")
+            
+            for cbrain_tenant_info in cbrain_tenant_list:
+                cbrain_tenant_id = cbrain_tenant_info.get("id")  # tenantId
+                cbrain_tenant_name = cbrain_tenant_info.get("name", "")
+                
+                if not cbrain_tenant_id:
+                    logging.warning(f"跳过无效的C大脑租户信息: {cbrain_tenant_info}")
+                    continue
+                
+                # 查找对应的Dify工作空间
+                existing_tenant = None
+                for tenant in existing_tenants:
+                    if tenant.cbrain_tenant_id == cbrain_tenant_id:
+                        existing_tenant = tenant
+                        break
+                
+                if existing_tenant:
+                    # 更新工作空间信息
+                    updated = False
+                    
+                    # 更新租户名称（如果C大脑的名称有变化）
+                    if cbrain_tenant_name and existing_tenant.name != cbrain_tenant_name:
+                        existing_tenant.name = cbrain_tenant_name
+                        updated = True
+                        logging.info(f"更新工作空间 {existing_tenant.id} 名称: {cbrain_tenant_name}")
+                    
+                    if updated:
+                        db.session.commit()
+                        logging.info(f"工作空间 {existing_tenant.id} 信息同步完成")
+                else:
+                    # 如果Dify中没有对应的工作空间，创建一个新的
+                    logging.info(f"为C大脑租户 {cbrain_tenant_id} 创建新的Dify工作空间")
+                    tenant = TenantService.create_tenant(name=cbrain_tenant_name)
+                    tenant.cbrain_tenant_id = cbrain_tenant_id
+                    db.session.commit()
+                    
+                    # 关联用户为所有者
+                    TenantService.create_tenant_member(tenant, account, role="owner")
+                    tenant_was_created.send(tenant)
+                    
+            logging.info(f"用户 {account.id} 的C大脑租户信息同步完成")
+            
+        except Exception as e:
+            logging.error(f"同步C大脑租户信息失败: {str(e)}")
+            db.session.rollback()
+            raise
 
     @staticmethod
     def create_owner_tenant_if_not_exist(

@@ -97,15 +97,58 @@ class OAuthCallback(Resource):
             account.initialized_at = naive_utc_now()
             db.session.commit()
 
-        try:
-            TenantService.create_owner_tenant_if_not_exist(account)
-        except Unauthorized:
-            return redirect(f"{dify_config.CONSOLE_WEB_URL}/signin?message=Workspace not found.")
-        except WorkSpaceNotAllowedCreateError:
-            return redirect(
-                f"{dify_config.CONSOLE_WEB_URL}/signin"
-                "?message=Workspace not found, please contact system admin to invite you to join in a workspace."
-            )
+        # 对于C大脑OAuth，特殊处理租户创建
+        if provider == "cbrain":
+            logging.info(f"开始处理C大脑OAuth回调，用户: {user_info.id}, 账户: {account.id}")
+            try:
+                # 获取C大脑用户的租户列表
+                cbrain_tenant_list = oauth_provider.get_cbrain_tenant_list(code, **request.args)
+                logging.info(f"获取到C大脑租户列表: {len(cbrain_tenant_list) if cbrain_tenant_list else 0} 个租户")
+                
+                # 检查用户是否已有工作空间
+                existing_tenants = TenantService.get_join_tenants(account)
+                logging.info(f"用户现有工作空间数量: {len(existing_tenants)}")
+                
+                if not existing_tenants:
+                    # 使用C大脑租户信息创建默认工作空间
+                    logging.info(f"用户无工作空间，开始创建C大脑租户对应的工作空间")
+                    TenantService.create_default_tenants(
+                        account=account,
+                        cbrain_token=code,
+                        cbrain_tenant_list=cbrain_tenant_list
+                    )
+                else:
+                    # 用户已有工作空间，但可能需要同步C大脑租户信息
+                    # 检查是否需要同步C大脑租户信息
+                    if cbrain_tenant_list:
+                        logging.info(f"用户 {account.id} 已有工作空间，检查是否需要同步C大脑租户信息")
+                        # 同步C大脑租户信息到Dify工作空间
+                        TenantService.sync_cbrain_tenant_info(account, cbrain_tenant_list)
+                    
+            except Exception as e:
+                logging.error(f"Failed to create C大脑 tenants for account {account.id}: {str(e)}")
+                # 如果C大脑租户创建失败，回退到默认逻辑
+                try:
+                    logging.info(f"回退到默认工作空间创建逻辑")
+                    TenantService.create_owner_tenant_if_not_exist(account)
+                except Unauthorized:
+                    return redirect(f"{dify_config.CONSOLE_WEB_URL}/signin?message=Workspace not found.")
+                except WorkSpaceNotAllowedCreateError:
+                    return redirect(
+                        f"{dify_config.CONSOLE_WEB_URL}/signin"
+                        "?message=Workspace not found, please contact system admin to invite you to join in a workspace."
+                    )
+        else:
+            # 其他OAuth提供商使用原有逻辑
+            try:
+                TenantService.create_owner_tenant_if_not_exist(account)
+            except Unauthorized:
+                return redirect(f"{dify_config.CONSOLE_WEB_URL}/signin?message=Workspace not found.")
+            except WorkSpaceNotAllowedCreateError:
+                return redirect(
+                    f"{dify_config.CONSOLE_WEB_URL}/signin"
+                    "?message=Workspace not found, please contact system admin to invite you to join in a workspace."
+                )
 
         token_pair = AccountService.login(
             account=account,
@@ -114,6 +157,7 @@ class OAuthCallback(Resource):
 
         # 对于C大脑OAuth，拼接C大脑参数和dify的token参数
         if provider == "cbrain":
+            logging.info(f"开始构建C大脑OAuth返回参数")
             # 获取C大脑OAuth的返回参数
             cbrain_params = oauth_provider.get_cbrain_return_params(
                 code=code,
@@ -121,6 +165,7 @@ class OAuthCallback(Resource):
                 account=account,
                 request_args=request.args
             )
+            logging.info(f"C大脑OAuth返回参数: {cbrain_params}")
 
             # 构建返回URL，包含C大脑参数和dify的token参数
             redirect_url = f"{dify_config.CONSOLE_WEB_URL}oauth-callback?"
@@ -131,11 +176,15 @@ class OAuthCallback(Resource):
             param_pairs.append(f"refresh_token={token_pair.refresh_token}")
             
             # 添加C大脑的参数
+            import urllib.parse
             for key, value in cbrain_params.items():
                 if value is not None:
-                    param_pairs.append(f"{key}={value}")
+                    # URL编码参数值，避免特殊字符问题
+                    encoded_value = urllib.parse.quote(str(value))
+                    param_pairs.append(f"{key}={encoded_value}")
 
             redirect_url += "&".join(param_pairs)
+            logging.info(f"C大脑OAuth重定向URL: {redirect_url}")
             return redirect(redirect_url)
         else:
             # 其他OAuth提供商保持原有逻辑
