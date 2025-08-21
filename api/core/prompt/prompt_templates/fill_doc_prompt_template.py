@@ -211,7 +211,6 @@ input:##node##supplier.##prop##bid_documents = "沈飞民机投标文件.pdf"
 待完成的文档：{{#output_results#}}
 信息数据来源:
 {{#input_key_values#}}
-用户填写要求：{{#question#}}
 文档生成结果首尾的````禁止遗漏，文档结果：
 """
 

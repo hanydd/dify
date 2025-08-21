@@ -36,6 +36,6 @@ class SceneType(StrEnum):
     """
     Scene Type Enum
     """
-    GENERATE_DOCUMENT = "生成文档"
-    FILL_FORM = "填表单"
-    UNDEFINED = "未定义"
+    GENERATE_DOCUMENT = "generate_document"
+    FILL_FORM = "fill_form"
+    UNDEFINED = "undefined"

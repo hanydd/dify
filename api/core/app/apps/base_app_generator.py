@@ -29,12 +29,20 @@ class BaseAppGenerator:
         tenant_id: str,
         strict_type_validation: bool = False,
     ) -> Mapping[str, Any]:
+        print("_prepare_user_inputs user_inputs: , variables: ", user_inputs, variables)
         user_inputs = user_inputs or {}
         # Filter input variables from form configuration, handle required fields, default values, and option values
-        user_inputs = {
-            var.variable: self._validate_inputs(value=user_inputs.get(var.variable), variable_entity=var)
-            for var in variables
-        }
+        # user_inputs = {
+        #     var.variable: self._validate_inputs(value=user_inputs.get(var.variable), variable_entity=var)
+        #     for var in variables
+        # }
+        for var in variables:
+            var_name = var.variable
+            value = user_inputs.get(var_name)  # 获取当前变量的值
+            # 验证并更新值（仅处理 variables 中定义的键）
+            validated_value = self._validate_inputs(value=value, variable_entity=var)
+            user_inputs[var_name] = validated_value  # 替换为验证后的值
+
         user_inputs = {k: self._sanitize_value(v) for k, v in user_inputs.items()}
         # Convert files in inputs to File
         entity_dictionary = {item.variable: item for item in variables}

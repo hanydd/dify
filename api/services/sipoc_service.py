@@ -32,14 +32,17 @@ class SipocService:
         if iorcConfig:
             if iorcConfig.inputNodes:
                 for inputNode in iorcConfig.inputNodes:
+                    #print("generate sipoc_kv inputNode", inputNode)
                     node_kv = SipocService.generate_node_kv(inputNode, 'ctx_input')
                     sipoc_kv.update(node_kv)
             if iorcConfig.outputNodes:
                 for outputNode in iorcConfig.outputNodes:
+                    #print("generate sipoc_kv outputNode", outputNode)
                     node_kv = SipocService.generate_node_kv(outputNode, 'ctx_output')
                     sipoc_kv.update(node_kv)
             if iorcConfig.controlNodes:
                 for controlNode in iorcConfig.controlNodes:
+                    #print("generate sipoc_kv controlNode", controlNode)
                     node_kv = SipocService.generate_node_kv(controlNode, 'ctx_control')
                     sipoc_kv.update(node_kv)
 
@@ -59,9 +62,11 @@ class SipocService:
         if iorcConfig:
             if iorcConfig.outputNodes:
                 for outputNode in iorcConfig.outputNodes:
+                    #print("generate_sipoc_output_kv outputNode", outputNode)
                     node_kv = SipocService.generate_node_kv(outputNode, 'gen_output')
+                    #print("generate_sipoc_output_kv node_kv:", node_kv)
                     sipoc_kv.update(node_kv)
-
+        #print("generate_sipoc_output_kv sipoc_kv:", sipoc_kv)
         return sipoc_kv
 
     @staticmethod
@@ -103,6 +108,7 @@ class SipocService:
                         if prop.value:
                             sipoc_kv[key2] = prop.value
 
+        #print("generate_node_kv sipoc_kv", sipoc_kv)
         return sipoc_kv
 
     @staticmethod
