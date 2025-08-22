@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Optional, TypedDict, cast
+from typing import Optional, TypedDict, cast, List
 
 from flask_login import current_user
 from flask_sqlalchemy.pagination import Pagination
@@ -448,6 +448,16 @@ class AppService:
         if not site:
             raise ValueError(f"App with id {app_id} not found")
         return str(site.code)
+
+    @staticmethod
+    def get_app_by_ids(app_ids: List[str]) -> List[App]:
+        """
+        通过id列表查询APP列表
+        :param app_ids: app id 列表
+        :return: app 列表
+        """
+        apps = db.session.query(App).where(App.id.in_(app_ids)).all()
+        return apps
 
     @staticmethod
     def get_app_id_by_code(app_code: str) -> str:
