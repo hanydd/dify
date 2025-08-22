@@ -119,9 +119,16 @@ class AgentChatAppGenerator(MessageBasedAppGenerator):
                 sipoc_config = SipocModelConfig(**sipoc_config_dict)
             except Exception as e:
                 raise ValueError(f"Invalid sipoc_config format: {e}")
+            print("generate sipoc_config", sipoc_config)
 
             # generate sipoc kv
             sipoc_kv = SipocService.generate_sipoc_kv(sipoc_config, invoke_from != InvokeFrom.DEBUGGER)
+            print("generate sipoc_kv", sipoc_kv)
+            # generate sipoc kv
+            output_sipoc_kv = SipocService.generate_sipoc_output_kv(sipoc_config, invoke_from != InvokeFrom.DEBUGGER)
+            print("generate sipoc_kv", output_sipoc_kv)
+            sipoc_kv.update(output_sipoc_kv)
+
             # add sipoc kv to inputs
             for k, v in sipoc_kv.items():
                 is_file, file_url = SipocService.is_file_kv(k, v)
@@ -129,7 +136,8 @@ class AgentChatAppGenerator(MessageBasedAppGenerator):
                     app_model_config = SipocService.handle_sipoc_file(k, file_url, app_model_config, user)
                 else:
                     inputs[k] = v
-            inputs["sipoc_config"] = sipoc_config
+            #inputs["sipoc_config"] = sipoc_config.__dict__
+            print("generate inputs", inputs)
 
         # validate override model config
         override_model_config_dict = None

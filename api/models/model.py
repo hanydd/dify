@@ -122,6 +122,11 @@ class App(Base):
         return None
 
     @property
+    def custom_config(self):
+        custom_config = db.session.query(AppCustomConfig).where(AppCustomConfig.app_id == self.id).first()
+        return custom_config
+
+    @property
     def workflow(self) -> Optional["Workflow"]:
         if self.workflow_id:
             from .workflow import Workflow
@@ -301,6 +306,23 @@ class App(Base):
         return None
 
 
+class AppCustomConfig(Base):
+    __tablename__ = "app_custom_config"
+    __table_args__ = (db.PrimaryKeyConstraint("id", name="app_custom_config_pkey"),
+                      db.Index("config_app_id_idx", "app_id"))
+
+    id: Mapped[str] = mapped_column(StringUUID, server_default=db.text("uuid_generate_v4()"))
+    app_id: Mapped[str] = mapped_column(StringUUID)
+
+    # 过程模型配置
+    activityUuid: Mapped[str] = mapped_column(db.String(255))
+    procedureVersionId: Mapped[str] = mapped_column(db.String(255))
+    modelType: Mapped[str] = mapped_column(db.String(255))
+    procedureId: Mapped[Optional[str]] = mapped_column(db.String(255))
+    valueChainId = db.Column(db.String(255))
+    valueFlowVersionId: Mapped[Optional[str]] = mapped_column(db.String(255))
+
+
 def process_user_input_form(model_config: dict) -> Optional[str]:
     """
     处理用户输入表单（列表类型），追加sipoc_config字典元素
@@ -368,6 +390,16 @@ class AppModelConfig(Base):
     @property
     def model_dict(self) -> dict:
         return json.loads(self.model) if self.model else {}
+
+    @property
+    def configs_dict(self) -> dict:
+        # 若configs是字典，直接返回；若是JSON字符串，则反序列化；否则返回空字典
+        if isinstance(self.configs, dict):
+            return self.configs
+        elif self.configs:
+            return json.loads(self.configs)
+        else:
+            return {}
 
     @property
     def suggested_questions_list(self) -> list:

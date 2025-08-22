@@ -1,3 +1,4 @@
+import json
 import logging
 import time
 from collections.abc import Generator, Mapping, Sequence
@@ -101,13 +102,26 @@ class AppRunner:
         :param image_detail_config: the image quality config
         :return:
         """
+        #print("organize_prompt_messages app_record---", app_record.__dict__)
+        #print(json.dumps(app_record.__dict__, indent=4))
         # get prompt without memory and context
         if prompt_template_entity.prompt_type == PromptTemplateEntity.PromptType.SIMPLE:
             prompt_transform: Union[SimplePromptTransform, AdvancedPromptTransform]
             prompt_transform = SimplePromptTransform()
-            #app_record.app_model_config.user_input_form.to_dict()
-            prompt_messages, stop = prompt_transform.get_prompt(
+            # prompt_messages, stop = prompt_transform.get_prompt(
+            #     app_mode=AppMode.value_of(app_record.mode),
+            #     prompt_template_entity=prompt_template_entity,
+            #     inputs=inputs,
+            #     query=query or "",
+            #     files=files,
+            #     context=context,
+            #     memory=memory,
+            #     model_config=model_config,
+            #     image_detail_config=image_detail_config,
+            # )
+            prompt_messages, stop = prompt_transform.get_prompt_by_scene(
                 app_mode=AppMode.value_of(app_record.mode),
+                app_record=app_record,
                 prompt_template_entity=prompt_template_entity,
                 inputs=inputs,
                 query=query or "",
