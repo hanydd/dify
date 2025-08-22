@@ -19,7 +19,7 @@ from controllers.console.wraps import (
 )
 from core.ops.ops_trace_manager import OpsTraceManager
 from extensions.ext_database import db
-from fields.app_fields import app_detail_fields, app_detail_fields_with_site, app_pagination_fields
+from fields.app_fields import app_detail_fields, app_detail_fields_with_site, app_pagination_fields, app_simple_fields
 from libs.login import login_required
 from models import Account, App
 from services.app_dsl_service import AppDslService, ImportMode
@@ -394,6 +394,20 @@ class AppTraceApi(Resource):
         return {"result": "success"}
 
 
+class AppSimpleIdListApi(Resource):
+    @marshal_with(app_simple_fields)
+    def post(self):
+        """通过id列表查询应用基础信息"""
+        parser = reqparse.RequestParser()
+        parser.add_argument("ids", type=list, required=True, location="json")
+        args = parser.parse_args()
+
+        app_service = AppService()
+        apps = app_service.get_app_by_ids(args["ids"])
+
+        return apps
+
+
 api.add_resource(AppListApi, "/apps")
 api.add_resource(AppApi, "/apps/<uuid:app_id>")
 api.add_resource(AppCopyApi, "/apps/<uuid:app_id>/copy")
@@ -404,3 +418,4 @@ api.add_resource(AppSiteStatus, "/apps/<uuid:app_id>/site-enable")
 api.add_resource(AppApiStatus, "/apps/<uuid:app_id>/api-enable")
 api.add_resource(AppTraceApi, "/apps/<uuid:app_id>/trace")
 api.add_resource(CbrainCreateAppApi, "/apps/createFromActivity")
+api.add_resource(AppSimpleIdListApi, "/apps/listDetails")
