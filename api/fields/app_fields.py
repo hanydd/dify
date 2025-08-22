@@ -251,3 +251,13 @@ app_server_fields = {
     "created_at": TimestampField,
     "updated_at": TimestampField,
 }
+
+app_simple_fields = {
+    "id": fields.String,
+    "name": fields.String,
+    "description": fields.String,
+    "mode": fields.String(attribute="mode_compatible_with_agent"),
+    "icon_type": fields.String,
+    "icon": fields.String,
+    "icon_background": fields.String,
+}
