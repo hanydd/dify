@@ -74,25 +74,25 @@ class CbrainOAuth(OAuth):
         """
         try:
             # C大脑租户列表接口地址
-            tenant_list_url = "http://10.230.1.182/cbrain-gateway/cbrain-portal-server/application/tbtenant/list"
-            
+            tenant_list_url = "http://10.230.8.88/cbrain-gateway/cbrain-portal-server/application/tbtenant/list"
+
             # 设置请求头
             headers = {
                 "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json"
             }
-            
+
             # 发送GET请求获取租户列表
             response = requests.get(tenant_list_url, headers=headers, timeout=10)
             response.raise_for_status()  # 检查HTTP错误
-            
+
             # 解析响应
             response_data = response.json()
-            
+
             # 检查响应格式
             if response_data.get("success") and response_data.get("code") == 200:
                 tenant_list = response_data.get("data", [])
-                
+
                 # 转换租户信息格式，适配Dify的租户创建逻辑
                 formatted_tenants = []
                 for tenant in tenant_list:
@@ -117,13 +117,13 @@ class CbrainOAuth(OAuth):
                         "mobile_water_flag": tenant.get("mobileWaterFlag", "")  # 移动端水印标志
                     }
                     formatted_tenants.append(formatted_tenant)
-                
+
                 print(f"C大脑租户列表获取成功，共{len(formatted_tenants)}个租户")
                 return formatted_tenants
             else:
                 print(f"C大脑租户列表获取失败: {response_data.get('msg', '未知错误')}")
                 return []
-                
+
         except requests.exceptions.RequestException as e:
             print(f"请求C大脑租户列表接口失败: {str(e)}")
             return []
@@ -147,7 +147,7 @@ class CbrainOAuth(OAuth):
         # 添加参数验证
         if not code:
             raise ValueError("code参数不能为空")
-        
+
         params = {}
 
         # 登录相关参数
@@ -160,12 +160,12 @@ class CbrainOAuth(OAuth):
         # 活动登录相关参数（如果存在）
         if entry_point == "2":  # 活动登录
             # 活动登录相关参数
-            params["valueChainId"] = request_args.get("valueChainId")  
-            params["valueFlowVersionId"] = request_args.get("valueFlowVersionId") 
-            params["procedureId"] = request_args.get("procedureId")  
+            params["valueChainId"] = request_args.get("valueChainId")
+            params["valueFlowVersionId"] = request_args.get("valueFlowVersionId")
+            params["procedureId"] = request_args.get("procedureId")
             params["modelType"] = request_args.get("modelType")
-            params["nodeId"] = request_args.get("nodeId")  
-            params["agent_id"] = request_args.get("agent_id")  
+            params["nodeId"] = request_args.get("nodeId")
+            params["agent_id"] = request_args.get("agent_id")
 
         # 页面路径相关参数
         params["url"] = request_args.get("url", "/explore/apps")  # 默认跳转到智能体广场

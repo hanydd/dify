@@ -104,11 +104,11 @@ class OAuthCallback(Resource):
                 # 获取C大脑用户的租户列表
                 cbrain_tenant_list = oauth_provider.get_cbrain_tenant_list(code, **request.args)
                 logging.info(f"获取到C大脑租户列表: {len(cbrain_tenant_list) if cbrain_tenant_list else 0} 个租户")
-                
+
                 # 检查用户是否已有工作空间
                 existing_tenants = TenantService.get_join_tenants(account)
                 logging.info(f"用户现有工作空间数量: {len(existing_tenants)}")
-                
+
                 if not existing_tenants:
                     # 使用C大脑租户信息创建默认工作空间
                     logging.info(f"用户无工作空间，开始创建C大脑租户对应的工作空间")
@@ -124,7 +124,7 @@ class OAuthCallback(Resource):
                         logging.info(f"用户 {account.id} 已有工作空间，检查是否需要同步C大脑租户信息")
                         # 同步C大脑租户信息到Dify工作空间
                         TenantService.sync_cbrain_tenant_info(account, cbrain_tenant_list)
-                    
+
             except Exception as e:
                 logging.error(f"Failed to create C大脑 tenants for account {account.id}: {str(e)}")
                 # 如果C大脑租户创建失败，回退到默认逻辑
@@ -168,13 +168,13 @@ class OAuthCallback(Resource):
             logging.info(f"C大脑OAuth返回参数: {cbrain_params}")
 
             # 构建返回URL，包含C大脑参数和dify的token参数
-            redirect_url = f"{dify_config.CONSOLE_WEB_URL}oauth-callback?"
+            redirect_url = f"{dify_config.CONSOLE_WEB_URL}/oauth-callback?"
             param_pairs = []
-            
+
             # 添加dify的token参数
             param_pairs.append(f"access_token={token_pair.access_token}")
             param_pairs.append(f"refresh_token={token_pair.refresh_token}")
-            
+
             # 添加C大脑的参数
             import urllib.parse
             for key, value in cbrain_params.items():
