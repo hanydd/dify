@@ -58,6 +58,7 @@ from core.prompt.utils.prompt_template_parser import PromptTemplateParser
 from events.message_event import message_was_created
 from extensions.ext_database import db
 from models.model import AppMode, Conversation, Message, MessageAgentThought
+from services.sipoc_service import SipocService
 
 logger = logging.getLogger(__name__)
 
@@ -475,11 +476,20 @@ class EasyUIBasedGenerateTaskPipeline(BasedGenerateTaskPipeline):
         )
 
         if agent_thought:
+
+            thought = agent_thought.thought
+            if SipocService.is_sipoc_output(thought):
+                message: Optional[Message] = (
+                    db.session.query(Message).where(Message.id == agent_thought.message_id).first()
+                )
+                if message:
+                    thought += message.override_model_configs
+
             return AgentThoughtStreamResponse(
                 task_id=self._application_generate_entity.task_id,
                 id=agent_thought.id,
                 position=agent_thought.position,
-                thought=agent_thought.thought,
+                thought=thought,
                 observation=agent_thought.observation,
                 tool=agent_thought.tool,
                 tool_labels=agent_thought.tool_labels,
