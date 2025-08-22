@@ -499,10 +499,11 @@ class SimplePromptTransform(PromptTransform):
         scene_type_str: Optional[str] = configs_dict.get("scene_type")
         #print("get_scene_type configs_dict", configs_dict)
 
-        normalized_str = scene_type_str.lower()
         # 处理空值情况
-        if not normalized_str:
+        if not scene_type_str:
             return SceneType.UNDEFINED
+
+        normalized_str = scene_type_str.lower()
 
         # 尝试转换为SceneType枚举
         try:
