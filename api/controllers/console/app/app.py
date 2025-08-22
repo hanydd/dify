@@ -158,7 +158,7 @@ class CbrainCreateAppApi(Resource):
 
 class AppApi(Resource):
     @setup_required
-    @login_required
+    #@login_required
     @account_initialization_required
     @enterprise_license_required
     @get_app_model

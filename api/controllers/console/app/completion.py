@@ -97,7 +97,7 @@ class CompletionMessageStopApi(Resource):
 
 class ChatMessageApi(Resource):
     @setup_required
-    @login_required
+    #@login_required
     @account_initialization_required
     @get_app_model(mode=[AppMode.CHAT, AppMode.AGENT_CHAT])
     def post(self, app_model):
