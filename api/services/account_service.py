@@ -923,6 +923,7 @@ class TenantService:
                 # 公共空间
                 existing_public_tenant = public_tenants_dict.get(cbrain_tenant_id)
                 if not existing_public_tenant:
+                    logging.info(f"为C大脑租户 {cbrain_tenant_id} ({cbrain_tenant_name}) 创建公共工作空间")
                     tenant = TenantService.create_tenant(name=cbrain_tenant_name + "工作空间", is_public=True,
                                                          cbrain_tenant_id=cbrain_tenant_id)
                     admin_account = (db.session.query(Account)
@@ -937,7 +938,7 @@ class TenantService:
                 existing_personal_tenant: Tenant = personal_tenants_dict.get(cbrain_tenant_id)
                 if not existing_personal_tenant:
                     # 创建新的工作空间，绑定C大脑租户ID
-                    logging.info(f"为C大脑租户 {cbrain_tenant_id} ({cbrain_tenant_name}) 创建Dify工作空间")
+                    logging.info(f"为C大脑租户 {cbrain_tenant_id} ({cbrain_tenant_name}) 创建个人工作空间")
                     tenant = TenantService.create_tenant(
                         name=f"{account.name}的{cbrain_tenant_name}工作空间",
                         is_public=False,
