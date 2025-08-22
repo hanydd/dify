@@ -1,3 +1,4 @@
+import json
 import uuid
 from typing import cast, Optional
 
@@ -21,7 +22,7 @@ from core.ops.ops_trace_manager import OpsTraceManager
 from extensions.ext_database import db
 from fields.app_fields import app_detail_fields, app_detail_fields_with_site, app_pagination_fields, app_simple_fields
 from libs.login import login_required
-from models import Account, App
+from models import Account, App, Tenant
 from services.app_dsl_service import AppDslService, ImportMode
 from services.app_service import AppService
 from services.enterprise.enterprise_service import EnterpriseService
@@ -146,19 +147,21 @@ class CbrainCreateAppApi(Resource):
         account: Optional[Account] = Account.get_by_openid("cbrain", cbrain_user)
         if account is None:
             # TODO 创建用户
-            pass
+            account = db.session.query(Account).filter(Account.id == "905bb081-433a-4b29-8a43-004b5160c3f5").one()
         # TODO 获取c大脑租户对应的租户
-        tenant_id = dify_config.DEFAULT_TENANT_ID
+        print("Create App", account.id, account.current_tenant_id)
+        tenant = db.session.query(Tenant).filter(Tenant.id == "d7f0046e-ac4a-446f-99a7-3efa73d26f04").one()
+        account.current_tenant = tenant
 
         app_service = AppService()
-        app = app_service.create_app(tenant_id, args, account)
+        app = app_service.create_app(account.current_tenant_id, args, account)
 
         return app, 201
 
 
 class AppApi(Resource):
     @setup_required
-    #@login_required
+    # @login_required
     @account_initialization_required
     @enterprise_license_required
     @get_app_model
