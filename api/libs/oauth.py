@@ -1,3 +1,4 @@
+import logging
 import urllib.parse
 from dataclasses import dataclass
 from typing import Optional, Dict, Any
@@ -53,15 +54,15 @@ class CbrainOAuth(OAuth):
         headers = {"Authorization": f"Bearer {token}", "environment": kwargs.get("environment")}
         response = requests.post(user_info_url, headers=headers)
         response_json = response.json()
-        print("C大脑登录返回：", response_json)
+        logging.info(f"C大脑登录返回：{response_json}")
         return response_json.get("data")
 
     def _transform_user_info(self, raw_info: dict) -> OAuthUserInfo:
-        print("_transform_user_info", raw_info)
         email = raw_info["currentUserId"] + "@dify.comnova.com"
         return OAuthUserInfo(id=raw_info["currentUserId"], name=raw_info["userName"], email=email)
 
-    def get_cbrain_tenant_list(self, token: str, **kwargs) -> list:
+    @staticmethod
+    def get_cbrain_tenant_list(token: str) -> list:
         """
         获取C大脑用户的租户列表
 
@@ -74,7 +75,7 @@ class CbrainOAuth(OAuth):
         """
         try:
             # C大脑租户列表接口地址
-            tenant_list_url = "http://10.230.8.88/cbrain-gateway/cbrain-portal-server/application/tbtenant/list"
+            tenant_list_url = dify_config.CBRAIN_BASE_URL + "/cbrain-gateway/cbrain-portal-server/application/tbtenant/list"
 
             # 设置请求头
             headers = {
@@ -85,44 +86,16 @@ class CbrainOAuth(OAuth):
             # 发送GET请求获取租户列表
             response = requests.get(tenant_list_url, headers=headers, timeout=10)
             response.raise_for_status()  # 检查HTTP错误
-
-            # 解析响应
             response_data = response.json()
 
             # 检查响应格式
-            if response_data.get("success") and response_data.get("code") == 200:
-                tenant_list = response_data.get("data", [])
-
-                # 转换租户信息格式，适配Dify的租户创建逻辑
-                formatted_tenants = []
-                for tenant in tenant_list:
-                    formatted_tenant = {
-                        "id": tenant.get("tenantId"),  # 使用tenantId作为唯一标识
-                        "name": tenant.get("name", ""),  # 租户名称
-                        "name_en": tenant.get("nameEn", ""),  # 英文名称
-                        "description": tenant.get("tenantDesc", ""),  # 租户描述
-                        "status": tenant.get("status", 0),  # 租户状态
-                        "manager_name": tenant.get("managerName", ""),  # 管理员名称
-                        "manager_id": tenant.get("managerId", ""),  # 管理员ID
-                        "creator_id": tenant.get("creatorId", ""),  # 创建者ID
-                        "create_time": tenant.get("createTime", ""),  # 创建时间
-                        "update_time": tenant.get("updateTime", ""),  # 更新时间
-                        "user_status": tenant.get("userStatus", 0),  # 用户状态
-                        "head_image": tenant.get("headImage", ""),  # 头像
-                        "site_flag": tenant.get("siteFlag", False),  # 站点标志
-                        "site_address": tenant.get("siteAddress", ""),  # 站点地址
-                        "category_id": tenant.get("categoryId", ""),  # 分类ID
-                        "menu_list": tenant.get("menuList", ""),  # 菜单列表
-                        "web_water_flag": tenant.get("webWaterFlag", ""),  # 网页水印标志
-                        "mobile_water_flag": tenant.get("mobileWaterFlag", "")  # 移动端水印标志
-                    }
-                    formatted_tenants.append(formatted_tenant)
-
-                print(f"C大脑租户列表获取成功，共{len(formatted_tenants)}个租户")
-                return formatted_tenants
-            else:
+            if not response_data.get("success") or response_data.get("code") != 200:
                 print(f"C大脑租户列表获取失败: {response_data.get('msg', '未知错误')}")
-                return []
+                raise
+
+            tenant_list = response_data.get("data", [])
+            print(f"C大脑租户列表获取成功，共{len(tenant_list)}个租户")
+            return tenant_list
 
         except requests.exceptions.RequestException as e:
             print(f"请求C大脑租户列表接口失败: {str(e)}")
@@ -131,14 +104,13 @@ class CbrainOAuth(OAuth):
             print(f"解析C大脑租户列表响应失败: {str(e)}")
             return []
 
-    def get_cbrain_return_params(self, code: str, user_info: OAuthUserInfo, account: Any, request_args: Any) -> Dict[str, str]:
+    @staticmethod
+    def get_cbrain_return_params(code: str, request_args: Any) -> Dict[str, str]:
         """
         生成C大脑OAuth所需的返回参数
 
         Args:
             code: OAuth授权码
-            user_info: 用户信息
-            account: 账户信息
             request_args: 请求参数
 
         Returns:
@@ -148,11 +120,8 @@ class CbrainOAuth(OAuth):
         if not code:
             raise ValueError("code参数不能为空")
 
-        params = {}
-
         # 登录相关参数
-        params["cbrain_token"] = code  # c大脑token
-
+        params = {"cbrain_token": code}
         # 登录入口场景
         entry_point = request_args.get("entry_point", "1")  # 默认普通入口
         params["entry_point"] = entry_point
@@ -167,12 +136,8 @@ class CbrainOAuth(OAuth):
             params["nodeId"] = request_args.get("nodeId")
             params["agent_id"] = request_args.get("agent_id")
 
-        # 页面路径相关参数
+            # 页面路径相关参数
         params["url"] = request_args.get("url", "/explore/apps")  # 默认跳转到智能体广场
-
-        # 智能体相关参数（如果存在）
-        params["agentName"] = request_args.get("agentName")
-        params["agentDescription"] = request_args.get("agentDescription")
 
         # 过滤掉None值
         return {k: v for k, v in params.items() if v is not None}
