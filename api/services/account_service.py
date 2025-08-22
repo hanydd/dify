@@ -893,6 +893,7 @@ class TenantService:
         try:
             cbrain_tenant_ids = [cbrain_tenant.get("id") for cbrain_tenant in
                                  cbrain_tenant_list] if cbrain_tenant_list else []
+            logging.info(f"C大脑租户列表{cbrain_tenant_ids}")
             # 查询已有租户
             public_tenants = (db.session.query(Tenant)
                               .where(Tenant.cbrain_tenant_id.in_(cbrain_tenant_ids), Tenant.is_public == True)
@@ -905,8 +906,8 @@ class TenantService:
                        Tenant.cbrain_tenant_id.in_(cbrain_tenant_ids), Tenant.is_public == True)
                 .all())
             logging.info(f"现有私人工作空间数量: {len(personal_tenants)}")
-            public_tenants_dict = {tenant.id: tenant for tenant in public_tenants}
-            personal_tenants_dict = {tenant.id: tenant for tenant in personal_tenants}
+            public_tenants_dict = {tenant.cbrain_tenant_id: tenant for tenant in public_tenants}
+            personal_tenants_dict = {tenant.cbrain_tenant_id: tenant for tenant in personal_tenants}
 
             # 如果有C大脑租户信息，优先处理C大脑租户
             for cbrain_tenant_info in cbrain_tenant_list:

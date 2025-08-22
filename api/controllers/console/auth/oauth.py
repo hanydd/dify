@@ -1,5 +1,6 @@
 import logging
 from typing import Optional
+from urllib.parse import urlencode
 
 import requests
 from flask import current_app, redirect, request
@@ -80,7 +81,20 @@ class OAuthCallback(Resource):
         try:
             # 对于C大脑OAuth，特殊处理租户创建
             if provider == "cbrain":
+                logging.info(f"开始处理C大脑OAuth回调，用户: {user_info.id}")
+
                 account = _get_account_by_openid_or_email(provider, user_info)
+                if not account:
+                    account = AccountService.create_account(
+                        email=user_info.email,
+                        name=user_info.name,
+                        interface_language="zh-Hans",
+                    )
+                    account.status = AccountStatus.ACTIVE.value
+                    account.initialized_at = naive_utc_now()
+
+                    AccountService.link_account_integrate(provider, user_info.id, account)
+
                 logging.info(f"开始处理C大脑OAuth回调，用户: {user_info.id}, 账户: {account.id}")
 
                 # 获取C大脑用户的租户列表
@@ -92,6 +106,8 @@ class OAuthCallback(Resource):
                     environment=environment,
                     cbrain_tenant_list=cbrain_tenant_list
                 )
+                db.session.commit()
+
         except Exception:
             logging.error("创建用户失败！")
             raise
@@ -139,23 +155,14 @@ class OAuthCallback(Resource):
             cbrain_params = CbrainOAuth.get_cbrain_return_params(code=code, request_args=request.args)
             logging.info(f"C大脑OAuth返回参数: {cbrain_params}")
 
-            # 构建返回URL，包含C大脑参数和dify的token参数
-            redirect_url = f"{dify_config.CONSOLE_WEB_URL}/oauth-callback?"
-            param_pairs = []
-
             # 添加dify的token参数
-            param_pairs.append(f"access_token={token_pair.access_token}")
-            param_pairs.append(f"refresh_token={token_pair.refresh_token}")
+            cbrain_params["access_token"] = token_pair.access_token
+            cbrain_params["refresh_token"] = token_pair.refresh_token
 
             # 添加C大脑的参数
-            import urllib.parse
-            for key, value in cbrain_params.items():
-                if value is not None:
-                    # URL编码参数值，避免特殊字符问题
-                    encoded_value = urllib.parse.quote(str(value))
-                    param_pairs.append(f"{key}={encoded_value}")
-
-            redirect_url += "&".join(param_pairs)
+            redirect_url = f"{dify_config.CONSOLE_WEB_URL}/oauth-callback?{urlencode(cbrain_params)}"
+            logging.info(
+                f"{dify_config.CONSOLE_WEB_URL}?access_token={token_pair.access_token}&refresh_token={token_pair.refresh_token}")
             logging.info(f"C大脑OAuth重定向URL: {redirect_url}")
             return redirect(redirect_url)
         else:
