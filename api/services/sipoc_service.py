@@ -154,7 +154,7 @@ class SipocService:
         return False, ""
 
     @staticmethod
-    def handle_sipoc_file(key: str, value: Any, app_config: AppModelConfig, user: Union[Account, EndUser]) -> AppModelConfig:
+    def handle_sipoc_file(key: str, value: Any, app_config: dict, user: Union[Account, EndUser]) -> dict:
         """
         Handle sipoc file，处理sipoc文件附件，从C大脑下载文件，上传到dify文件存储，并且构建默认知识库，更新app_config
         :param key:
@@ -208,25 +208,20 @@ class SipocService:
                 # 如果文件已经被引用到知识库，则不创建知识库
                 dataset_id = document.dataset_id
 
-        # dataset_configs.datasets.datasets里面新增知识库{"dataset": {"id": "dataset_id", "enabled": True}}
-        # dataset_configs = ast.literal_eval(app_config.dataset_configs)
-        dataset_configs = json.loads(app_config.dataset_configs)
-        print(dataset_configs)
-        dataset_configs["datasets"]["datasets"].append({
+        app_config["dataset_configs"]["datasets"]["datasets"].append({
             "dataset": {
                 "id": dataset_id,
                 "enabled": True
             }
         })
 
-        app_config.dataset_configs = json.dumps(dataset_configs)
 
         # 新增知识库后，需要更新app_config里面的pre_prompt，如果sipoc附件参数在pre_prompt中，进行替换，否则将使用知识库回答文件，加到提示词最后
-        if key in app_config.pre_prompt:
-            app_config.pre_prompt = app_config.pre_prompt.replace(key, f"(你可以使用知识库来回答用户的问题, 知识库的id是：{dataset_id})")
+        if key in app_config["pre_prompt"]:
+            app_config["pre_prompt"] = app_config["pre_prompt"].replace(key, f"(你可以使用知识库来回答用户的问题, 知识库的id是：{dataset_id})")
         else:
-            app_config.pre_prompt += f"(你可以使用知识库来回答用户的问题, 知识库的id是：{dataset_id})"
-        print(f"app_config.pre_prompt: {app_config.pre_prompt}")
+            app_config["pre_prompt"] += f"(你可以使用知识库来回答用户的问题, 知识库的id是：{dataset_id})"
+        print(f"app_config.pre_prompt: {app_config["pre_prompt"]}")
         return app_config
         # response = {"dataset": dataset, "documents": documents, "batch": batch}
 
