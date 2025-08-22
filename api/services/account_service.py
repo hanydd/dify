@@ -903,7 +903,7 @@ class TenantService:
                 db.session.query(Tenant)
                 .join(TenantAccountJoin, Tenant.id == TenantAccountJoin.tenant_id)
                 .where(TenantAccountJoin.account_id == account.id, Tenant.status == TenantStatus.NORMAL,
-                       Tenant.cbrain_tenant_id.in_(cbrain_tenant_ids), Tenant.is_public == True)
+                       Tenant.cbrain_tenant_id.in_(cbrain_tenant_ids), Tenant.is_public == False)
                 .all())
             logging.info(f"现有私人工作空间数量: {len(personal_tenants)}")
             public_tenants_dict = {tenant.cbrain_tenant_id: tenant for tenant in public_tenants}
