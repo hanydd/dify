@@ -150,9 +150,7 @@ class AgentChatAppGenerator(MessageBasedAppGenerator):
             override_config_dict=override_model_config_dict,
         )
 
-        # sipoc_config = args["sipoc_config"]
         sipoc_config_dict = args["sipoc_config"]
-
         if sipoc_config_dict:
             try:
                 # 自动转换字典为SipocModelConfig实例，嵌套的modelContext会转为IORCConfig
@@ -163,10 +161,8 @@ class AgentChatAppGenerator(MessageBasedAppGenerator):
 
             # generate sipoc kv
             sipoc_kv = SipocService.generate_sipoc_kv(sipoc_config, invoke_from != InvokeFrom.DEBUGGER)
-            print("generate sipoc_kv", sipoc_kv)
             # generate sipoc kv
             output_sipoc_kv = SipocService.generate_sipoc_output_kv(sipoc_config, invoke_from != InvokeFrom.DEBUGGER)
-            print("generate sipoc_kv", output_sipoc_kv)
             sipoc_kv.update(output_sipoc_kv)
 
             # add sipoc kv to inputs
@@ -176,7 +172,6 @@ class AgentChatAppGenerator(MessageBasedAppGenerator):
                     app_config.app_model_config_dict = SipocService.handle_sipoc_file(k, file_url, app_config.app_model_config_dict, user)
                 else:
                     inputs[k] = v
-            # inputs["sipoc_config"] = sipoc_config.__dict__
             print("generate inputs", inputs)
 
         # get tracing instance

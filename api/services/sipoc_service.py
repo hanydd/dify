@@ -88,6 +88,28 @@ class SipocService:
         return sipoc_config
 
     @staticmethod
+    def convert_sipoc_output_kv(user_input_form: str, output_kv: str) -> str:
+        """
+        将sipoc的输出kv，填充到SipocModelConfig对象中
+        """
+
+        if not output_kv or not user_input_form:
+            return ""
+        output_kv = json.loads(output_kv)
+        user_input_form = json.loads(user_input_form)
+        sipoc_config = None
+        for item in user_input_form:
+            if 'sipoc_config' in item.keys():
+                sipoc_config = SipocModelConfig(**item['sipoc_config'])
+                break
+        if not sipoc_config or not sipoc_config.modelGenerate:
+            return ""
+        for outputNode in sipoc_config.modelGenerate.outputNodes:
+            SipocService.fillup_node_kv(outputNode, 'gen_output', output_kv)
+        return ", sipoc_config: " + sipoc_config.model_dump_json()
+
+
+    @staticmethod
     def generate_node_kv(nodeObj: NodeObject, prefix: str) -> dict:
 
         sipoc_kv = {}
@@ -112,7 +134,6 @@ class SipocService:
                         if prop.value:
                             sipoc_kv[key2] = prop.value
 
-        #print("generate_node_kv sipoc_kv", sipoc_kv)
         return sipoc_kv
 
     @staticmethod
