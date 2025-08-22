@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Optional, TypedDict, cast
+from typing import Optional, TypedDict, cast, List
 
 from flask_login import current_user
 from flask_sqlalchemy.pagination import Pagination
@@ -18,7 +18,7 @@ from events.app_event import app_was_created
 from extensions.ext_database import db
 from libs.datetime_utils import naive_utc_now
 from models.account import Account
-from models.model import App, AppMode, AppModelConfig, Site
+from models.model import App, AppMode, AppModelConfig, Site, AppCustomConfig
 from models.tools import ApiToolProvider
 from services.enterprise.enterprise_service import EnterpriseService
 from services.feature_service import FeatureService
@@ -125,6 +125,19 @@ class AppService:
 
             default_model_config["model"] = json.dumps(default_model_dict)
 
+        # custom model config 自定义配置
+        custom_config = AppCustomConfig()
+        sipoc = False
+        if "activityUuid" in args:
+            # 来源C大脑的app
+            sipoc = True
+            custom_config.activityUuid = args["activityUuid"]
+            custom_config.procedureVersionId = args["procedureVersionId"]
+            custom_config.modelType = args["modelType"]
+            custom_config.procedureId = args["procedureId"]
+            custom_config.valueChainId = args["valueChainId"]
+            custom_config.valueFlowVersionId = args["valueFlowVersionId"]
+
         app = App(**app_template["app"])
         app.name = args["name"]
         app.description = args.get("description", "")
@@ -159,37 +172,16 @@ class AppService:
 
             app.app_model_config_id = app_model_config.id
 
-        db.session.commit()
+        if custom_config:
+            custom_config.app_id = app.id
+            db.session.add(custom_config)
+            db.session.flush()
 
-        # 处理入口标识和标签创建
-        entry_point = args.get("entry_point")
-        if entry_point == "sipoc":
-            # 当检测到特定入口时，自动创建"c_brain"标签并绑定到新创建的App上
-            try:
-                # 检查是否已存在"c_brain"标签
-                existing_tags = TagService.get_tag_by_tag_name("app", tenant_id, "c_brain")
-                if not existing_tags:
-                    # 创建"c_brain"标签
-                    tag_args = {
-                        "name": "c_brain",
-                        "type": "app"
-                    }
-                    tag = TagService.save_tags(tag_args)
-                    tag_id = tag.id
-                else:
-                    tag_id = existing_tags[0].id
-                
-                # 绑定标签到App
-                binding_args = {
-                    "tag_ids": [tag_id],
-                    "target_id": app.id,
-                    "type": "app"
-                }
-                TagService.save_tag_binding(binding_args)
-                
-                logging.info(f"Successfully created and bound 'c_brain' tag to app {app.id}")
-            except Exception as e:
-                logging.error(f"Failed to create/bind 'c_brain' tag for app {app.id}: {str(e)}")
+        # 绑定SIPOC标签
+        if sipoc:
+            TagService.bind_sipoc_tag(app.id, tenant_id)
+
+        db.session.commit()
 
         app_was_created.send(app, account=account)
 
@@ -441,6 +433,16 @@ class AppService:
         if not site:
             raise ValueError(f"App with id {app_id} not found")
         return str(site.code)
+
+    @staticmethod
+    def get_app_by_ids(app_ids: List[str]) -> List[App]:
+        """
+        通过id列表查询APP列表
+        :param app_ids: app id 列表
+        :return: app 列表
+        """
+        apps = db.session.query(App).where(App.id.in_(app_ids)).all()
+        return apps
 
     @staticmethod
     def get_app_id_by_code(app_code: str) -> str:

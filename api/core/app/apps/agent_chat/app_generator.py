@@ -8,6 +8,7 @@ from typing import Any, Literal, Union, overload
 from flask import Flask, current_app
 from pydantic import ValidationError
 
+from common.sipoc_model import SipocModelConfig
 from configs import dify_config
 from constants import UUID_NIL
 from core.app.app_config.easy_ui_based_app.model_config.converter import ModelConfigConverter
@@ -109,20 +110,6 @@ class AgentChatAppGenerator(MessageBasedAppGenerator):
         # get app model config
         app_model_config = self._get_app_model_config(app_model=app_model, conversation=conversation)
 
-        sipoc_config = args["sipoc_config"]
-        if sipoc_config:
-            # generate sipoc kv
-            sipoc_kv = SipocService.generate_sipoc_kv(sipoc_config, invoke_from != InvokeFrom.DEBUGGER)
-
-            # add sipoc kv to inputs
-            for k, v in sipoc_kv.items():
-                is_file, file_url = SipocService.is_file_kv(k, v)
-                if is_file:
-                    app_model_config = SipocService.handle_sipoc_file(k, file_url, app_model_config)
-                else:
-                    inputs[k] = v
-            inputs["sipoc_config"] = sipoc_config
-
         # validate override model config
         override_model_config_dict = None
         if args.get("model_config"):
@@ -162,6 +149,35 @@ class AgentChatAppGenerator(MessageBasedAppGenerator):
             conversation=conversation,
             override_config_dict=override_model_config_dict,
         )
+
+        # sipoc_config = args["sipoc_config"]
+        sipoc_config_dict = args["sipoc_config"]
+
+        if sipoc_config_dict:
+            try:
+                # 自动转换字典为SipocModelConfig实例，嵌套的modelContext会转为IORCConfig
+                sipoc_config = SipocModelConfig(**sipoc_config_dict)
+            except Exception as e:
+                raise ValueError(f"Invalid sipoc_config format: {e}")
+            print("generate sipoc_config", sipoc_config)
+
+            # generate sipoc kv
+            sipoc_kv = SipocService.generate_sipoc_kv(sipoc_config, invoke_from != InvokeFrom.DEBUGGER)
+            print("generate sipoc_kv", sipoc_kv)
+            # generate sipoc kv
+            output_sipoc_kv = SipocService.generate_sipoc_output_kv(sipoc_config, invoke_from != InvokeFrom.DEBUGGER)
+            print("generate sipoc_kv", output_sipoc_kv)
+            sipoc_kv.update(output_sipoc_kv)
+
+            # add sipoc kv to inputs
+            for k, v in sipoc_kv.items():
+                is_file, file_url = SipocService.is_file_kv(k, v)
+                if is_file:
+                    app_config.app_model_config_dict = SipocService.handle_sipoc_file(k, file_url, app_config.app_model_config_dict, user)
+                else:
+                    inputs[k] = v
+            # inputs["sipoc_config"] = sipoc_config.__dict__
+            print("generate inputs", inputs)
 
         # get tracing instance
         trace_manager = TraceQueueManager(app_model.id, user.id if isinstance(user, Account) else user.session_id)

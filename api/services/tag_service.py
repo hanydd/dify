@@ -175,45 +175,30 @@ class TagService:
             raise NotFound("Invalid binding type")
 
     @staticmethod
-    def get_or_create_tag(tag_type: str, tenant_id: str, tag_name: str) -> Tag:
-        """获取或创建标签"""
-        # 先查找是否已存在
-        existing_tags = TagService.get_tag_by_tag_name(tag_type, tenant_id, tag_name)
-        if existing_tags:
-            return existing_tags[0]
-        
-        # 不存在则创建新标签
-        tag = Tag(
-            id=str(uuid.uuid4()),
-            name=tag_name,
-            type=tag_type,
-            created_by=current_user.id,
-            tenant_id=tenant_id,
-        )
-        db.session.add(tag)
-        db.session.commit()
-        return tag
+    def bind_sipoc_tag(app_id: str, tenant_id: str):
+        sipoc_tag = db.session().query(Tag).where(Tag.name == "SIPOC", Tag.tenant_id == tenant_id).first()
+        if not sipoc_tag:
+            sipoc_tag = Tag(
+                id=str(uuid.uuid4()),
+                name="SIPOC",
+                type="app",
+                created_by="905bb081-433a-4b29-8a43-004b5160c3f5",
+                tenant_id=tenant_id,
+            )
+            db.session.add(sipoc_tag)
 
-    @staticmethod
-    def bind_tag_to_target(tag_type: str, tenant_id: str, tag_id: str, target_id: str):
-        """绑定标签到目标"""
-        # 检查目标是否存在
-        TagService.check_target_exists(tag_type, target_id)
-        
-        # 检查是否已经绑定
-        existing_binding = (
+        tag_binding = (
             db.session.query(TagBinding)
-            .where(TagBinding.tag_id == tag_id, TagBinding.target_id == target_id)
+            .where(TagBinding.tag_id == sipoc_tag.id, TagBinding.target_id == tenant_id)
             .first()
         )
-        
-        if not existing_binding:
-            # 创建新的绑定
-            tag_binding = TagBinding(
-                tag_id=tag_id,
-                target_id=target_id,
+        if not tag_binding:
+            new_tag_binding = TagBinding(
+                tag_id=sipoc_tag.id,
+                target_id=app_id,
                 tenant_id=tenant_id,
-                created_by=current_user.id,
+                created_by="905bb081-433a-4b29-8a43-004b5160c3f5",
             )
-            db.session.add(tag_binding)
-            db.session.commit()
+            db.session.add(new_tag_binding)
+
+        db.session.commit()

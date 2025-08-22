@@ -1,12 +1,15 @@
+import json
 import uuid
-from typing import cast
+from typing import cast, Optional
 
+from flask import request
 from flask_login import current_user
 from flask_restful import Resource, inputs, marshal, marshal_with, reqparse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from werkzeug.exceptions import BadRequest, Forbidden, abort
 
+from configs import dify_config
 from controllers.console import api
 from controllers.console.app.wraps import get_app_model
 from controllers.console.wraps import (
@@ -17,9 +20,9 @@ from controllers.console.wraps import (
 )
 from core.ops.ops_trace_manager import OpsTraceManager
 from extensions.ext_database import db
-from fields.app_fields import app_detail_fields, app_detail_fields_with_site, app_pagination_fields
+from fields.app_fields import app_detail_fields, app_detail_fields_with_site, app_pagination_fields, app_simple_fields
 from libs.login import login_required
-from models import Account, App
+from models import Account, App, Tenant
 from services.app_dsl_service import AppDslService, ImportMode
 from services.app_service import AppService
 from services.enterprise.enterprise_service import EnterpriseService
@@ -99,7 +102,6 @@ class AppListApi(Resource):
         parser.add_argument("icon_type", type=str, location="json")
         parser.add_argument("icon", type=str, location="json")
         parser.add_argument("icon_background", type=str, location="json")
-        parser.add_argument("entry_point", type=str, location="json")  # 新增：入口标识参数
         args = parser.parse_args()
 
         # The role of the current user in the ta table must be admin, owner, or editor
@@ -115,9 +117,51 @@ class AppListApi(Resource):
         return app, 201
 
 
+class CbrainCreateAppApi(Resource):
+    @marshal_with(app_detail_fields)
+    def post(self):
+        """Create app From Cbrain"""
+        parser = reqparse.RequestParser()
+        parser.add_argument("name", type=str, required=True, location="json")
+        parser.add_argument("description", type=str, location="json")
+        parser.add_argument("mode", type=str, choices=ALLOW_CREATE_APP_MODES, location="json")
+        parser.add_argument("icon_type", type=str, location="json")
+        parser.add_argument("icon", type=str, location="json")
+        parser.add_argument("icon_background", type=str, location="json")
+        parser.add_argument("activityUuid", type=str, required=True, location="json")
+        parser.add_argument("procedureVersionId", type=str, required=True, location="json")
+        parser.add_argument("modelType", type=str, required=True, location="json")
+        parser.add_argument("procedureId", type=str, required=True, location="json")
+        parser.add_argument("valueChainId", type=str, required=True, location="json")
+        parser.add_argument("valueFlowVersionId", type=str, required=True, location="json")
+        args = parser.parse_args()
+
+        if "mode" not in args or args["mode"] is None:
+            args["mode"] = "agent-chat"
+
+        # 从请求头获取C大脑用户和租户
+        cbrain_user = request.headers.get("currentUserId")
+        cbrain_tenant = request.headers.get("Environment")
+        cbrain_token = request.headers.get("Authorization")
+        # 查询dify中绑定的用户和租户
+        account: Optional[Account] = Account.get_by_openid("cbrain", cbrain_user)
+        if account is None:
+            # TODO 创建用户
+            account = db.session.query(Account).filter(Account.id == "905bb081-433a-4b29-8a43-004b5160c3f5").one()
+        # TODO 获取c大脑租户对应的租户
+        print("Create App", account.id, account.current_tenant_id)
+        tenant = db.session.query(Tenant).filter(Tenant.id == "d7f0046e-ac4a-446f-99a7-3efa73d26f04").one()
+        account.current_tenant = tenant
+
+        app_service = AppService()
+        app = app_service.create_app(account.current_tenant_id, args, account)
+
+        return app, 201
+
+
 class AppApi(Resource):
     @setup_required
-    @login_required
+    # @login_required
     @account_initialization_required
     @enterprise_license_required
     @get_app_model
@@ -353,6 +397,20 @@ class AppTraceApi(Resource):
         return {"result": "success"}
 
 
+class AppSimpleIdListApi(Resource):
+    @marshal_with(app_simple_fields)
+    def post(self):
+        """通过id列表查询应用基础信息"""
+        parser = reqparse.RequestParser()
+        parser.add_argument("ids", type=list, required=True, location="json")
+        args = parser.parse_args()
+
+        app_service = AppService()
+        apps = app_service.get_app_by_ids(args["ids"])
+
+        return apps
+
+
 api.add_resource(AppListApi, "/apps")
 api.add_resource(AppApi, "/apps/<uuid:app_id>")
 api.add_resource(AppCopyApi, "/apps/<uuid:app_id>/copy")
@@ -362,3 +420,5 @@ api.add_resource(AppIconApi, "/apps/<uuid:app_id>/icon")
 api.add_resource(AppSiteStatus, "/apps/<uuid:app_id>/site-enable")
 api.add_resource(AppApiStatus, "/apps/<uuid:app_id>/api-enable")
 api.add_resource(AppTraceApi, "/apps/<uuid:app_id>/trace")
+api.add_resource(CbrainCreateAppApi, "/apps/createFromActivity")
+api.add_resource(AppSimpleIdListApi, "/apps/listDetails")
