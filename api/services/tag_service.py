@@ -173,3 +173,47 @@ class TagService:
                 raise NotFound("App not found")
         else:
             raise NotFound("Invalid binding type")
+
+    @staticmethod
+    def get_or_create_tag(tag_type: str, tenant_id: str, tag_name: str) -> Tag:
+        """获取或创建标签"""
+        # 先查找是否已存在
+        existing_tags = TagService.get_tag_by_tag_name(tag_type, tenant_id, tag_name)
+        if existing_tags:
+            return existing_tags[0]
+        
+        # 不存在则创建新标签
+        tag = Tag(
+            id=str(uuid.uuid4()),
+            name=tag_name,
+            type=tag_type,
+            created_by=current_user.id,
+            tenant_id=tenant_id,
+        )
+        db.session.add(tag)
+        db.session.commit()
+        return tag
+
+    @staticmethod
+    def bind_tag_to_target(tag_type: str, tenant_id: str, tag_id: str, target_id: str):
+        """绑定标签到目标"""
+        # 检查目标是否存在
+        TagService.check_target_exists(tag_type, target_id)
+        
+        # 检查是否已经绑定
+        existing_binding = (
+            db.session.query(TagBinding)
+            .where(TagBinding.tag_id == tag_id, TagBinding.target_id == target_id)
+            .first()
+        )
+        
+        if not existing_binding:
+            # 创建新的绑定
+            tag_binding = TagBinding(
+                tag_id=tag_id,
+                target_id=target_id,
+                tenant_id=tenant_id,
+                created_by=current_user.id,
+            )
+            db.session.add(tag_binding)
+            db.session.commit()
