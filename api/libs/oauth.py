@@ -1,3 +1,4 @@
+import json
 import logging
 import urllib.parse
 from dataclasses import dataclass
@@ -52,6 +53,7 @@ class CbrainOAuth(OAuth):
         base_url = self._CBRAIN_BASE_URL
         user_info_url = urllib.parse.urljoin(base_url, self._USER_INFO_URL)
         headers = {"Authorization": f"Bearer {token}", "environment": kwargs.get("environment")}
+        logging.info(f"获取C大脑登录信息:{user_info_url}, {json.dumps(headers)}")
         response = requests.post(user_info_url, headers=headers)
         response_json = response.json()
         logging.info(f"C大脑登录返回：{response_json}")
