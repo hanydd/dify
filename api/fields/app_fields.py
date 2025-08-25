@@ -261,3 +261,13 @@ app_simple_fields = {
     "icon": fields.String,
     "icon_background": fields.String,
 }
+
+
+def get_cbrain_common_fields(data_field):
+    return {
+        "date": fields.String,
+        "msg": fields.String,
+        "code": fields.Integer,
+        "success": fields.Boolean,
+        "data": fields.Nested(data_field),
+    }

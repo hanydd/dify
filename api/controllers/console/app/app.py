@@ -1,4 +1,3 @@
-import json
 import uuid
 from typing import cast, Optional
 
@@ -9,7 +8,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from werkzeug.exceptions import BadRequest, Forbidden, abort
 
-from configs import dify_config
 from controllers.console import api
 from controllers.console.app.wraps import get_app_model
 from controllers.console.wraps import (
@@ -20,7 +18,9 @@ from controllers.console.wraps import (
 )
 from core.ops.ops_trace_manager import OpsTraceManager
 from extensions.ext_database import db
-from fields.app_fields import app_detail_fields, app_detail_fields_with_site, app_pagination_fields, app_simple_fields
+from fields.app_fields import app_detail_fields, app_detail_fields_with_site, app_pagination_fields, app_simple_fields, \
+    get_cbrain_common_fields
+from libs.cbrain_response import cbrain_response
 from libs.login import login_required
 from models import Account, App, Tenant
 from services.app_dsl_service import AppDslService, ImportMode
@@ -156,7 +156,7 @@ class CbrainCreateAppApi(Resource):
         app_service = AppService()
         app = app_service.create_app(account.current_tenant_id, args, account)
 
-        return app, 201
+        return {"success": True, "code": 200, "msg": "", "data": app}, 200
 
 
 class AppApi(Resource):
@@ -398,7 +398,7 @@ class AppTraceApi(Resource):
 
 
 class AppSimpleIdListApi(Resource):
-    @marshal_with(app_simple_fields)
+    @marshal_with(get_cbrain_common_fields(app_simple_fields))
     def post(self):
         """通过id列表查询应用基础信息"""
         parser = reqparse.RequestParser()
@@ -408,7 +408,7 @@ class AppSimpleIdListApi(Resource):
         app_service = AppService()
         apps = app_service.get_app_by_ids(args["ids"])
 
-        return apps
+        return cbrain_response(apps), 200
 
 
 api.add_resource(AppListApi, "/apps")

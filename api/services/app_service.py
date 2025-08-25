@@ -179,7 +179,7 @@ class AppService:
 
         # 绑定SIPOC标签
         if sipoc:
-            TagService.bind_sipoc_tag(app.id, tenant_id)
+            TagService.bind_sipoc_tag(app.id, tenant_id, account.id)
 
         db.session.commit()
 
