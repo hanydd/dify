@@ -195,14 +195,14 @@ class TagService:
             raise NotFound("Invalid binding type")
 
     @staticmethod
-    def bind_sipoc_tag(app_id: str, tenant_id: str):
+    def bind_sipoc_tag(app_id: str, tenant_id: str, account_id: str):
         sipoc_tag = db.session().query(Tag).where(Tag.name == "SIPOC", Tag.tenant_id == tenant_id).first()
         if not sipoc_tag:
             sipoc_tag = Tag(
                 id=str(uuid.uuid4()),
                 name="SIPOC",
                 type="app",
-                created_by="905bb081-433a-4b29-8a43-004b5160c3f5",
+                created_by=account_id,
                 tenant_id=tenant_id,
             )
             db.session.add(sipoc_tag)
@@ -217,7 +217,7 @@ class TagService:
                 tag_id=sipoc_tag.id,
                 target_id=app_id,
                 tenant_id=tenant_id,
-                created_by="905bb081-433a-4b29-8a43-004b5160c3f5",
+                created_by=account_id,
             )
             db.session.add(new_tag_binding)
 
