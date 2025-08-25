@@ -921,7 +921,7 @@ class TenantService:
                     cbrain_tenant_name = f"C大脑租户_{cbrain_tenant_id}"
 
                 # 公共空间
-                existing_public_tenant = public_tenants_dict.get(cbrain_tenant_id)
+                existing_public_tenant: Tenant = public_tenants_dict.get(cbrain_tenant_id)
                 if not existing_public_tenant:
                     logging.info(f"为C大脑租户 {cbrain_tenant_id} ({cbrain_tenant_name}) 创建公共工作空间")
                     tenant = TenantService.create_tenant(name=cbrain_tenant_name + "工作空间", is_public=True,
@@ -932,7 +932,8 @@ class TenantService:
                     TenantService.create_tenant_member(tenant, account, role="editor")
                     tenant_was_created.send(tenant)
                 else:
-                    logging.info(f"C大脑租户 {cbrain_tenant_id} 对应的公共工作空间已存在: {existing_public_tenant.id}")
+                    logging.info(f"C大脑租户 {cbrain_tenant_id} 对应的公共工作空间已存在: {existing_public_tenant.id}，加入")
+                    TenantService.create_tenant_member(existing_public_tenant, account, role="editor")
 
                 # 个人空间
                 existing_personal_tenant: Tenant = personal_tenants_dict.get(cbrain_tenant_id)
@@ -956,7 +957,7 @@ class TenantService:
             final_tenants = TenantService.get_join_tenants(account)
             logging.info(f"用户 {account.id} 创建工作空间完成，最终工作空间数量: {len(final_tenants)}")
 
-            # 将选中的工作空间设为当前活跃空间
+            # 将c大脑租户对应的公共空间设为当前活跃空间
             if environment and environment in public_tenants_dict:
                 default_public_tenant = public_tenants_dict.get(environment)
                 account.set_tenant_id(default_public_tenant.id)
