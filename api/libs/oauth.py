@@ -123,7 +123,7 @@ class CbrainOAuth(OAuth):
             raise ValueError("code参数不能为空")
 
         # 登录相关参数
-        params = {"cbrain_token": code}
+        params = {"cbrain_token": code, "environment": request_args.get("environment")}
         # 登录入口场景
         entry_point = request_args.get("entry_point", "1")  # 默认普通入口
         params["entry_point"] = entry_point
@@ -136,10 +136,12 @@ class CbrainOAuth(OAuth):
             params["procedureId"] = request_args.get("procedureId")
             params["modelType"] = request_args.get("modelType")
             params["nodeId"] = request_args.get("nodeId")
+            params["processId"] = request_args.get("processId")
             params["agent_id"] = request_args.get("agent_id")
 
-            # 页面路径相关参数
-        params["url"] = request_args.get("url", "/explore/apps")  # 默认跳转到智能体广场
+        # 页面路径相关参数
+        if "url" in request_args.keys():
+            params["url"] = request_args.get("url")
 
         # 过滤掉None值
         return {k: v for k, v in params.items() if v is not None}
