@@ -133,7 +133,10 @@ class DatasetService:
                 query = query.where(Dataset.id.in_(target_ids))
             else:
                 return [], 0
-
+        else:
+            target_ids = TagService.get_target_ids_by_tag_names("knowledge", tenant_id, ["SystemAutoGen"])
+            if target_ids:
+                query = query.where(Dataset.id.notin_(target_ids))
         datasets = db.paginate(select=query, page=page, per_page=per_page, max_per_page=100, error_out=False)
 
         return datasets.items, datasets.total

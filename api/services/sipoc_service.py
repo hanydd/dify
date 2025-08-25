@@ -15,6 +15,7 @@ from models import db, UploadFile, Document, AppModelConfig, Account, EndUser
 from services.dataset_service import DocumentService
 from services.entities.knowledge_entities.knowledge_entities import KnowledgeConfig
 from services.file_service import FileService
+from services.tag_service import TagService
 
 
 class SipocService:
@@ -186,7 +187,7 @@ class SipocService:
 
         # download file from cbrain minio
         file_content, filename, content_type, filehash, size = SipocService.download_file_from_cbrain_minio(value)
-        print(f"current_user: {user}")
+
         # 判断下载的文件是否已经存在，如果存在，则不重复上传，并且判断文件是否已经被知识库引用，如果引用，也不再继续创建知识库
         upload_file = db.session.query(UploadFile).filter(UploadFile.hash == filehash).first()
         print(f"upload_file from db: {upload_file}")
@@ -235,7 +236,8 @@ class SipocService:
                 "enabled": True
             }
         })
-
+        # 新增知识库后，需要绑定自动生成的标签
+        TagService.bind_knowledge_autogen_tag(dataset_id, tenant_id=user.current_tenant_id)
 
         # 新增知识库后，需要更新app_config里面的pre_prompt，如果sipoc附件参数在pre_prompt中，进行替换，否则将使用知识库回答文件，加到提示词最后
         if key in app_config["pre_prompt"]:

@@ -16,7 +16,7 @@ class TagService:
         query = (
             db.session.query(Tag.id, Tag.type, Tag.name, func.count(TagBinding.id).label("binding_count"))
             .outerjoin(TagBinding, Tag.id == TagBinding.tag_id)
-            .where(Tag.type == tag_type, Tag.tenant_id == current_tenant_id)
+            .where(Tag.type == tag_type, Tag.tenant_id == current_tenant_id, Tag.name != "SystemAutoGen")
         )
         if keyword:
             query = query.where(db.and_(Tag.name.ilike(f"%{keyword}%")))
@@ -29,6 +29,26 @@ class TagService:
         tags = (
             db.session.query(Tag)
             .where(Tag.id.in_(tag_ids), Tag.tenant_id == current_tenant_id, Tag.type == tag_type)
+            .all()
+        )
+        if not tags:
+            return []
+        tag_ids = [tag.id for tag in tags]
+        tag_bindings = (
+            db.session.query(TagBinding.target_id)
+            .where(TagBinding.tag_id.in_(tag_ids), TagBinding.tenant_id == current_tenant_id)
+            .all()
+        )
+        if not tag_bindings:
+            return []
+        results = [tag_binding.target_id for tag_binding in tag_bindings]
+        return results
+
+    @staticmethod
+    def get_target_ids_by_tag_names(tag_type: str, current_tenant_id: str, tag_names: list) -> list:
+        tags = (
+            db.session.query(Tag)
+            .where(Tag.name.in_(tag_names), Tag.tenant_id == current_tenant_id, Tag.type == tag_type)
             .all()
         )
         if not tags:
@@ -196,6 +216,35 @@ class TagService:
             new_tag_binding = TagBinding(
                 tag_id=sipoc_tag.id,
                 target_id=app_id,
+                tenant_id=tenant_id,
+                created_by="905bb081-433a-4b29-8a43-004b5160c3f5",
+            )
+            db.session.add(new_tag_binding)
+
+        db.session.commit()
+
+    @staticmethod
+    def bind_knowledge_autogen_tag(dataset_id: str, tenant_id: str):
+        autogen_tag = db.session().query(Tag).where(Tag.name == "SystemAutoGen", Tag.tenant_id == tenant_id).first()
+        if not autogen_tag:
+            autogen_tag = Tag(
+                id=str(uuid.uuid4()),
+                name="SystemAutoGen",
+                type="knowledge",
+                created_by="905bb081-433a-4b29-8a43-004b5160c3f5",
+                tenant_id=tenant_id,
+            )
+            db.session.add(autogen_tag)
+
+        tag_binding = (
+            db.session.query(TagBinding)
+            .where(TagBinding.tag_id == autogen_tag.id, TagBinding.target_id == tenant_id)
+            .first()
+        )
+        if not tag_binding:
+            new_tag_binding = TagBinding(
+                tag_id=autogen_tag.id,
+                target_id=dataset_id,
                 tenant_id=tenant_id,
                 created_by="905bb081-433a-4b29-8a43-004b5160c3f5",
             )
