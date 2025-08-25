@@ -250,7 +250,7 @@ class CbrainLoginApi(Resource):
         args = parser.parse_args()
 
         try:
-            new_token_pair = CbrainLoginService.login(args["token"], args["environment"], request)
+            new_token_pair = CbrainLoginService.login(args["token"], args["environment"], request).token_pair
             return {"success": True, "code": 200, "msg": "", "data": new_token_pair.model_dump()}
         except Exception as e:
             return {"success": True, "code": 200, "msg": str(e)}, 401

@@ -1,6 +1,7 @@
 import logging
-from typing import Optional
+from typing import Optional, Tuple
 
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -13,6 +14,15 @@ from services.account_service import AccountService, TenantService, TokenPair
 from libs.helper import extract_remote_ip
 
 
+class LoginStatus:
+    token_pair: TokenPair
+    account: Account
+
+    def __init__(self, token_pair: TokenPair, account: Account):
+        self.token_pair = token_pair
+        self.account = account
+
+
 class CbrainLoginService:
 
     provider = "cbrain"
@@ -20,7 +30,10 @@ class CbrainLoginService:
                                   redirect_uri=dify_config.CONSOLE_API_URL + "/console/api/oauth/authorize/cbrain")
 
     @staticmethod
-    def login(token: str, environment: str, request) -> TokenPair:
+    def login(token: str, environment: str, request) -> LoginStatus:
+        if token.startswith("Bearer"):
+            token = token[6:].strip()
+
         oauth_provider = CbrainLoginService.cbrain_provider
         token = oauth_provider.get_access_token(token)
         args = {"environment": environment}
@@ -57,7 +70,7 @@ class CbrainLoginService:
             account=account,
             ip_address=extract_remote_ip(request),
         )
-        return token_pair
+        return LoginStatus(token_pair=token_pair, account=account)
 
     @staticmethod
     def _get_account_by_openid_or_email(provider: str, user_info: OAuthUserInfo) -> Optional[Account]:
