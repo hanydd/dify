@@ -173,6 +173,11 @@ class SipocService:
             for item in value:
                 if isinstance(item, dict) and 'name' in item and 'url' in item:
                     return True, item['url']
+        elif isinstance(value, str) and 'name' in value and 'url' in value:
+            value = json.loads(value)
+            for item in value:
+                if isinstance(item, dict) and 'name' in item and 'url' in item:
+                    return True, item['url']
         return False, ""
 
     @staticmethod
