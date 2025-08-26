@@ -172,8 +172,9 @@ deleted_tool_fields = {
 }
 
 app_custom_config_fields = {
-    "activityUuid": fields.String,
-    "procedureVersionId": fields.String,
+    "activityLabelId": fields.String,
+    "activityNodeId": fields.String,
+    "processId": fields.String,
     "modelType": fields.String,
     "procedureId": fields.String,
     "valueChainId": fields.String,
