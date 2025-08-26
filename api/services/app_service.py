@@ -128,7 +128,7 @@ class AppService:
         # custom model config 自定义配置
         custom_config = AppCustomConfig()
         sipoc = False
-        if "activityUuid" in args:
+        if "activityNodeId" in args:
             # 来源C大脑的app
             sipoc = True
             custom_config.activityLabelId = args["activityLabelId"]
