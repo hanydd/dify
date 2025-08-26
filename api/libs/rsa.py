@@ -20,10 +20,9 @@ def generate_key_pair(tenant_id: str) -> str:
     pem_private = private_key.export_key()
     pem_public = public_key.export_key()
 
+    filepath = f"privkeys/{tenant_id}/private.pem"
     if dify_config.STORAGE_TYPE == StorageType.LOCAL:
         filepath = os.path.join("privkeys", tenant_id, "private.pem")
-    else:
-        filepath = f"privkeys/{tenant_id}/private.pem"
 
     storage.save(filepath, pem_private)
 
@@ -53,7 +52,9 @@ def encrypt(text: str, public_key: Union[str, bytes]) -> bytes:
 
 
 def get_decrypt_decoding(tenant_id: str) -> tuple[RSA.RsaKey, object]:
-    filepath = os.path.join("privkeys", tenant_id, "private.pem")
+    filepath = f"privkeys/{tenant_id}/private.pem"
+    if dify_config.STORAGE_TYPE == StorageType.LOCAL:
+        filepath = os.path.join("privkeys", tenant_id, "private.pem")
 
     cache_key = f"tenant_privkey:{hashlib.sha3_256(filepath.encode()).hexdigest()}"
     private_key = redis_client.get(cache_key)
