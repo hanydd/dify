@@ -131,8 +131,9 @@ class AppService:
         if "activityUuid" in args:
             # 来源C大脑的app
             sipoc = True
-            custom_config.activityUuid = args["activityUuid"]
-            custom_config.procedureVersionId = args["procedureVersionId"]
+            custom_config.activityLabelId = args["activityLabelId"]
+            custom_config.activityNodeId = args["activityNodeId"]
+            custom_config.processId = args["processId"]
             custom_config.modelType = args["modelType"]
             custom_config.procedureId = args["procedureId"]
             custom_config.valueChainId = args["valueChainId"]
