@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import json
 from typing import Any, Tuple
@@ -328,18 +329,27 @@ class SipocService:
 
 
     @staticmethod
-    def convert_file_to_text(file_content: bytes, file_name: str) -> bytes:
+    def convert_file_to_text(file_content: bytes, file_name: str) -> tuple[bytes,str]:
         """
         Convert file content to text, 将包含图片的文件，通过ocr等技术转化成文本文件
         """
         try:
+            file_flow_base64 = base64.b64encode(file_content).decode('utf-8')
             payload = {
-                "file_flow": file_content,
+                "file_flow": file_flow_base64,
                 "file_name": file_name
             }
-            response = requests.post("http://172.16.23.103:5551/handle_files", json.dumps(payload))
-            file_bytes = response.json().get("file_bytes")
-            return file_bytes
+
+            response = requests.post("http://172.16.23.103:5551/handle_files", json=payload)
+            response.raise_for_status()  # 检查请求是否成功
+
+            # 解析响应
+            response_data = response.json()
+            file_content_data = response_data.get("file_content")
+            base64_bytes = file_content_data.encode('utf-8')
+            decoded_bytes = base64_bytes.b64decode(base64_bytes)
+            returned_file_name = response_data.get("file_name")
+            return decoded_bytes, returned_file_name
         except Exception as e:
             print(f"转换失败: {str(e)}")
 
