@@ -315,12 +315,13 @@ class AppCustomConfig(Base):
     app_id: Mapped[str] = mapped_column(StringUUID)
 
     # 过程模型配置
-    activityUuid: Mapped[str] = mapped_column(db.String(255))
-    procedureVersionId: Mapped[str] = mapped_column(db.String(255))
-    modelType: Mapped[str] = mapped_column(db.String(255))
-    procedureId: Mapped[Optional[str]] = mapped_column(db.String(255))
-    valueChainId = db.Column(db.String(255))
-    valueFlowVersionId: Mapped[Optional[str]] = mapped_column(db.String(255))
+    activityLabelId: Mapped[str] = mapped_column(db.String(255), nullable=True)
+    activityNodeId: Mapped[str] = mapped_column(db.String(255), nullable=True)
+    processId: Mapped[str] = mapped_column(db.String(255), nullable=True)
+    modelType: Mapped[str] = mapped_column(db.String(255), nullable=True)
+    procedureId: Mapped[Optional[str]] = mapped_column(db.String(255), nullable=True)
+    valueChainId = db.Column(db.String(255), nullable=True)
+    valueFlowVersionId: Mapped[Optional[str]] = mapped_column(db.String(255), nullable=True)
 
 
 def process_user_input_form(model_config: dict) -> Optional[str]:

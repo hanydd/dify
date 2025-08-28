@@ -1,7 +1,7 @@
 import json
 import logging
 import uuid
-from typing import cast, Optional
+from typing import cast
 
 from flask import request
 from flask_login import current_user
@@ -10,7 +10,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from werkzeug.exceptions import BadRequest, Forbidden, abort
 
-from configs import dify_config
 from controllers.console import api
 from controllers.console.app.wraps import get_app_model
 from controllers.console.wraps import (
@@ -21,13 +20,16 @@ from controllers.console.wraps import (
 )
 from core.ops.ops_trace_manager import OpsTraceManager
 from extensions.ext_database import db
-from fields.app_fields import app_detail_fields, app_detail_fields_with_site, app_pagination_fields
+from fields.app_fields import app_detail_fields, app_detail_fields_with_site, app_pagination_fields, app_simple_fields, \
+    get_cbrain_common_fields
+from libs.cbrain_response import cbrain_response
 from libs.login import login_required
 from models import Account, App
 from services.app_dsl_service import AppDslService, ImportMode
 from services.app_service import AppService
 from services.enterprise.enterprise_service import EnterpriseService
 from services.feature_service import FeatureService
+from services.login_service import CbrainLoginService
 
 ALLOW_CREATE_APP_MODES = ["chat", "agent-chat", "advanced-chat", "workflow", "completion"]
 
@@ -119,7 +121,7 @@ class AppListApi(Resource):
 
 
 class CbrainCreateAppApi(Resource):
-    @marshal_with(app_detail_fields)
+    @marshal_with(get_cbrain_common_fields(app_detail_fields))
     def post(self):
         """Create app From Cbrain"""
         parser = reqparse.RequestParser()
@@ -129,8 +131,12 @@ class CbrainCreateAppApi(Resource):
         parser.add_argument("icon_type", type=str, location="json")
         parser.add_argument("icon", type=str, location="json")
         parser.add_argument("icon_background", type=str, location="json")
-        parser.add_argument("activityUuid", type=str, required=True, location="json")
-        parser.add_argument("procedureVersionId", type=str, required=True, location="json")
+
+        parser.add_argument("activityLabelId", type=str, required=True, location="json")
+        parser.add_argument("activityNodeId", type=str, required=True, location="json")
+
+        parser.add_argument("processId", type=str, required=True, location="json")
+
         parser.add_argument("modelType", type=str, required=True, location="json")
         parser.add_argument("procedureId", type=str, required=True, location="json")
         parser.add_argument("valueChainId", type=str, required=True, location="json")
@@ -141,26 +147,21 @@ class CbrainCreateAppApi(Resource):
             args["mode"] = "agent-chat"
 
         # 从请求头获取C大脑用户和租户
-        cbrain_user = request.headers.get("currentUserId")
         cbrain_tenant = request.headers.get("Environment")
         cbrain_token = request.headers.get("Authorization")
         # 查询dify中绑定的用户和租户
-        account: Optional[Account] = Account.get_by_openid("cbrain", cbrain_user)
-        if account is None:
-            # TODO 创建用户
-            pass
-        # TODO 获取c大脑租户对应的租户
-        tenant_id = dify_config.DEFAULT_TENANT_ID
+        login_status = CbrainLoginService.login(cbrain_token, cbrain_tenant, request)
+        account = login_status.account
 
         app_service = AppService()
-        app = app_service.create_app(tenant_id, args, account)
+        app = app_service.create_app(account.current_tenant_id, args, account)
 
-        return app, 201
+        return cbrain_response(app), 200
 
 
 class AppApi(Resource):
     @setup_required
-    @login_required
+    # @login_required
     @account_initialization_required
     @enterprise_license_required
     @get_app_model
@@ -397,6 +398,20 @@ class AppTraceApi(Resource):
         return {"result": "success"}
 
 
+class AppSimpleIdListApi(Resource):
+    @marshal_with(get_cbrain_common_fields(app_simple_fields))
+    def post(self):
+        """通过id列表查询应用基础信息"""
+        parser = reqparse.RequestParser()
+        parser.add_argument("ids", type=list, required=True, location="json")
+        args = parser.parse_args()
+
+        app_service = AppService()
+        apps = app_service.get_app_by_ids(args["ids"])
+
+        return cbrain_response(apps), 200
+
+
 api.add_resource(AppListApi, "/apps")
 api.add_resource(AppApi, "/apps/<uuid:app_id>")
 api.add_resource(AppCopyApi, "/apps/<uuid:app_id>/copy")
@@ -407,3 +422,4 @@ api.add_resource(AppSiteStatus, "/apps/<uuid:app_id>/site-enable")
 api.add_resource(AppApiStatus, "/apps/<uuid:app_id>/api-enable")
 api.add_resource(AppTraceApi, "/apps/<uuid:app_id>/trace")
 api.add_resource(CbrainCreateAppApi, "/apps/createFromActivity")
+api.add_resource(AppSimpleIdListApi, "/apps/listDetails")

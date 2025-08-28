@@ -197,7 +197,8 @@ class TenantStatus(enum.StrEnum):
 
 class Tenant(Base):
     __tablename__ = "tenants"
-    __table_args__ = (db.PrimaryKeyConstraint("id", name="tenant_pkey"),)
+    __table_args__ = (db.PrimaryKeyConstraint("id", name="tenant_pkey"),
+                      db.Index("tenant_cbrain_tenant_id_idx", "cbrain_tenant_id"))
 
     id: Mapped[str] = mapped_column(StringUUID, server_default=db.text("uuid_generate_v4()"))
     name: Mapped[str] = mapped_column(db.String(255))
@@ -205,6 +206,8 @@ class Tenant(Base):
     plan: Mapped[str] = mapped_column(db.String(255), server_default=db.text("'basic'::character varying"))
     status: Mapped[str] = mapped_column(db.String(255), server_default=db.text("'normal'::character varying"))
     custom_config: Mapped[Optional[str]] = mapped_column(db.Text)
+    cbrain_tenant_id: Mapped[Optional[str]] = mapped_column(db.String(255), nullable=True)  # C大脑租户ID
+    is_public: Mapped[bool] = mapped_column(db.Boolean, server_default=db.text("true"), nullable=False)  # 是否公开空间
     created_at: Mapped[datetime] = mapped_column(db.DateTime, server_default=func.current_timestamp(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(db.DateTime, server_default=func.current_timestamp())
 

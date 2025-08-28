@@ -277,6 +277,7 @@ def get_cbrain_common_fields(data_field):
         "data": fields.Nested(data_field),
     }
 
+
 # 新增解析函数，从 app_model_config.configs 中提取 scene_type
 def get_scene_type_from_config(app):
     try:

@@ -6,8 +6,10 @@ from Crypto.Cipher import AES
 from Crypto.PublicKey import RSA
 from Crypto.Random import get_random_bytes
 
+from configs import dify_config
 from extensions.ext_redis import redis_client
 from extensions.ext_storage import storage
+from extensions.storage.storage_type import StorageType
 from libs import gmpy2_pkcs10aep_cipher
 
 
@@ -18,7 +20,9 @@ def generate_key_pair(tenant_id: str) -> str:
     pem_private = private_key.export_key()
     pem_public = public_key.export_key()
 
-    filepath = os.path.join("privkeys", tenant_id, "private.pem")
+    filepath = f"privkeys/{tenant_id}/private.pem"
+    if dify_config.STORAGE_TYPE == StorageType.LOCAL:
+        filepath = os.path.join("privkeys", tenant_id, "private.pem")
 
     storage.save(filepath, pem_private)
 
@@ -48,7 +52,9 @@ def encrypt(text: str, public_key: Union[str, bytes]) -> bytes:
 
 
 def get_decrypt_decoding(tenant_id: str) -> tuple[RSA.RsaKey, object]:
-    filepath = os.path.join("privkeys", tenant_id, "private.pem")
+    filepath = f"privkeys/{tenant_id}/private.pem"
+    if dify_config.STORAGE_TYPE == StorageType.LOCAL:
+        filepath = os.path.join("privkeys", tenant_id, "private.pem")
 
     cache_key = f"tenant_privkey:{hashlib.sha3_256(filepath.encode()).hexdigest()}"
     private_key = redis_client.get(cache_key)
@@ -68,12 +74,12 @@ def get_decrypt_decoding(tenant_id: str) -> tuple[RSA.RsaKey, object]:
 
 def decrypt_token_with_decoding(encrypted_text: bytes, rsa_key: RSA.RsaKey, cipher_rsa) -> str:
     if encrypted_text.startswith(prefix_hybrid):
-        encrypted_text = encrypted_text[len(prefix_hybrid) :]
+        encrypted_text = encrypted_text[len(prefix_hybrid):]
 
         enc_aes_key = encrypted_text[: rsa_key.size_in_bytes()]
-        nonce = encrypted_text[rsa_key.size_in_bytes() : rsa_key.size_in_bytes() + 16]
-        tag = encrypted_text[rsa_key.size_in_bytes() + 16 : rsa_key.size_in_bytes() + 32]
-        ciphertext = encrypted_text[rsa_key.size_in_bytes() + 32 :]
+        nonce = encrypted_text[rsa_key.size_in_bytes(): rsa_key.size_in_bytes() + 16]
+        tag = encrypted_text[rsa_key.size_in_bytes() + 16: rsa_key.size_in_bytes() + 32]
+        ciphertext = encrypted_text[rsa_key.size_in_bytes() + 32:]
 
         aes_key = cipher_rsa.decrypt(enc_aes_key)
 

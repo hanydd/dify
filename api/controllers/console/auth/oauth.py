@@ -1,5 +1,6 @@
 import logging
 from typing import Optional
+from urllib.parse import urlencode
 
 import requests
 from flask import current_app, redirect, request
@@ -54,6 +55,7 @@ class OAuthCallback(Resource):
             return {"error": "Invalid provider"}, 400
 
         code = request.args.get("code")
+        environment = request.args.get("environment")
         state = request.args.get("state")
         invite_token = None
         if state:
@@ -75,6 +77,40 @@ class OAuthCallback(Resource):
                     return redirect(f"{dify_config.CONSOLE_WEB_URL}/signin?message=Invalid invitation token.")
 
             return redirect(f"{dify_config.CONSOLE_WEB_URL}/signin/invite-settings?invite_token={invite_token}")
+
+        try:
+            # 对于C大脑OAuth，特殊处理租户创建
+            if provider == "cbrain":
+                logging.info(f"开始处理C大脑OAuth回调，用户: {user_info.id}")
+
+                account = _get_account_by_openid_or_email(provider, user_info)
+                if not account:
+                    account = AccountService.create_account(
+                        email=user_info.email,
+                        name=user_info.name,
+                        interface_language="zh-Hans",
+                    )
+                    account.status = AccountStatus.ACTIVE.value
+                    account.initialized_at = naive_utc_now()
+
+                    AccountService.link_account_integrate(provider, user_info.id, account)
+
+                logging.info(f"开始处理C大脑OAuth回调，用户: {user_info.id}, 账户: {account.id}")
+
+                # 获取C大脑用户的租户列表
+                cbrain_tenant_list = CbrainOAuth.get_cbrain_tenant_list(code)
+                logging.info(f"获取到C大脑租户列表: {len(cbrain_tenant_list) if cbrain_tenant_list else 0} 个租户")
+
+                TenantService.check_and_create_default_tenants(
+                    account=account,
+                    environment=environment,
+                    cbrain_tenant_list=cbrain_tenant_list
+                )
+                db.session.commit()
+
+        except Exception:
+            logging.error("创建用户失败！")
+            raise
 
         try:
             account = _generate_account(provider, user_info)
@@ -107,31 +143,30 @@ class OAuthCallback(Resource):
                 "?message=Workspace not found, please contact system admin to invite you to join in a workspace."
             )
 
-        # 对于C大脑OAuth，返回特定的参数而不是dify的token
+        token_pair = AccountService.login(
+            account=account,
+            ip_address=extract_remote_ip(request),
+        )
+
+        # 对于C大脑OAuth，拼接C大脑参数和dify的token参数
         if provider == "cbrain":
+            logging.info(f"开始构建C大脑OAuth返回参数")
             # 获取C大脑OAuth的返回参数
-            cbrain_params = oauth_provider.get_cbrain_return_params(
-                code=code,
-                user_info=user_info,
-                account=account,
-                request_args=request.args
-            )
-            
-            # 构建返回URL，包含C大脑所需的参数
-            redirect_url = f"{dify_config.CONSOLE_WEB_URL}?"
-            param_pairs = []
-            for key, value in cbrain_params.items():
-                if value is not None:
-                    param_pairs.append(f"{key}={value}")
-            
-            redirect_url += "&".join(param_pairs)
+            cbrain_params = CbrainOAuth.get_cbrain_return_params(code=code, request_args=request.args)
+            logging.info(f"C大脑OAuth返回参数: {cbrain_params}")
+
+            # 添加dify的token参数
+            cbrain_params["access_token"] = token_pair.access_token
+            cbrain_params["refresh_token"] = token_pair.refresh_token
+
+            # 添加C大脑的参数
+            redirect_url = f"{dify_config.CONSOLE_WEB_URL}/oauth-callback?{urlencode(cbrain_params)}"
+            logging.info(
+                f"{dify_config.CONSOLE_WEB_URL}?access_token={token_pair.access_token}&refresh_token={token_pair.refresh_token}")
+            logging.info(f"C大脑OAuth重定向URL: {redirect_url}")
             return redirect(redirect_url)
         else:
             # 其他OAuth提供商保持原有逻辑
-            token_pair = AccountService.login(
-                account=account,
-                ip_address=extract_remote_ip(request),
-            )
             return redirect(
                 f"{dify_config.CONSOLE_WEB_URL}?access_token={token_pair.access_token}&refresh_token={token_pair.refresh_token}"
             )
@@ -154,14 +189,9 @@ def _generate_account(provider: str, user_info: OAuthUserInfo):
     if account:
         tenants = TenantService.get_join_tenants(account)
         if not tenants:
-            if not FeatureService.get_system_features().is_allow_create_workspace:
-                raise WorkSpaceNotAllowedCreateError()
-            else:
-                RegisterService.create_default_tenant(account=account)
+            RegisterService.create_default_tenant(account=account)
 
     if not account:
-        if not FeatureService.get_system_features().is_allow_register:
-            raise AccountNotFoundError()
         account_name = user_info.name or "Dify"
         account = RegisterService.register(
             email=user_info.email, name=account_name, password=None, open_id=user_info.id, provider=provider

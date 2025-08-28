@@ -1,16 +1,21 @@
+import ast
 import hashlib
+import json
+from typing import Any, Tuple, Union
+import json
 from typing import Any, Tuple
+from urllib import request
+import requests
 import boto3
 from botocore.client import Config
 
 import services
 from common.sipoc_model import SipocModelConfig, NodeObject
-from models import db, UploadFile, Document
+from models import db, UploadFile, Document, AppModelConfig, Account, EndUser
 from services.dataset_service import DocumentService
 from services.entities.knowledge_entities.knowledge_entities import KnowledgeConfig
 from services.file_service import FileService
-
-from flask_login import current_user
+from services.tag_service import TagService
 
 
 class SipocService:
@@ -84,6 +89,28 @@ class SipocService:
         return sipoc_config
 
     @staticmethod
+    def convert_sipoc_output_kv(user_input_form: str, output_kv: str) -> str:
+        """
+        将sipoc的输出kv，填充到SipocModelConfig对象中
+        """
+
+        if not output_kv or not user_input_form:
+            return ""
+        output_kv = json.loads(output_kv)
+        user_input_form = json.loads(user_input_form)
+        sipoc_config = None
+        for item in user_input_form:
+            if 'sipoc_config' in item.keys():
+                sipoc_config = SipocModelConfig(**item['sipoc_config'])
+                break
+        if not sipoc_config or not sipoc_config.modelGenerate:
+            return ""
+        for outputNode in sipoc_config.modelGenerate.outputNodes:
+            SipocService.fillup_node_kv(outputNode, 'gen_output', output_kv)
+        return ", sipoc_config: " + sipoc_config.model_dump_json()
+
+
+    @staticmethod
     def generate_node_kv(nodeObj: NodeObject, prefix: str) -> dict:
 
         sipoc_kv = {}
@@ -108,7 +135,6 @@ class SipocService:
                         if prop.value:
                             sipoc_kv[key2] = prop.value
 
-        #print("generate_node_kv sipoc_kv", sipoc_kv)
         return sipoc_kv
 
     @staticmethod
@@ -147,10 +173,15 @@ class SipocService:
             for item in value:
                 if isinstance(item, dict) and 'name' in item and 'url' in item:
                     return True, item['url']
+        elif isinstance(value, str) and 'name' in value and 'url' in value:
+            value = json.loads(value)
+            for item in value:
+                if isinstance(item, dict) and 'name' in item and 'url' in item:
+                    return True, item['url']
         return False, ""
 
     @staticmethod
-    def handle_sipoc_file(key: str, value: Any, app_config: dict) -> dict:
+    def handle_sipoc_file(key: str, value: Any, app_config: dict, user: Union[Account, EndUser]) -> dict:
         """
         Handle sipoc file，处理sipoc文件附件，从C大脑下载文件，上传到dify文件存储，并且构建默认知识库，更新app_config
         :param key:
@@ -164,7 +195,7 @@ class SipocService:
 
         # 判断下载的文件是否已经存在，如果存在，则不重复上传，并且判断文件是否已经被知识库引用，如果引用，也不再继续创建知识库
         upload_file = db.session.query(UploadFile).filter(UploadFile.hash == filehash).first()
-
+        print(f"upload_file from db: {upload_file}")
         if not upload_file:
             # 如果找不到文件，则上传文件并创建知识库
             try:
@@ -172,7 +203,7 @@ class SipocService:
                     filename=filename,
                     content=file_content,
                     mimetype=content_type,
-                    user=current_user,
+                    user=user,
                     source="datasets",
                 )
             except Exception as e:
@@ -181,20 +212,21 @@ class SipocService:
             knowledge_config = SipocService.generate_default_knowledge_config(upload_file.id)
             try:
                 dataset, documents, batch = DocumentService.save_document_without_dataset_id(
-                    tenant_id=current_user.current_tenant_id, knowledge_config=knowledge_config, account=current_user
+                    tenant_id=user.current_tenant_id, knowledge_config=knowledge_config, account=user
                 )
                 dataset_id = dataset.id
+
             except Exception as ex:
                 raise ex
         else:
-            document = db.session.query(Document).filter(Document.file_id == upload_file.id).first()
+            document = db.session.query(Document).filter(Document.data_source_info.ilike(f"%{upload_file.id}%")).first()
             if not document:
                 # 如果文件没有被引用到知识库，则创建知识库
                 knowledge_config = SipocService.generate_default_knowledge_config(upload_file.id)
                 try:
                     dataset, documents, batch = DocumentService.save_document_without_dataset_id(
-                        tenant_id=current_user.current_tenant_id, knowledge_config=knowledge_config,
-                        account=current_user
+                        tenant_id=user.current_tenant_id, knowledge_config=knowledge_config,
+                        account=user
                     )
                     dataset_id = dataset.id
                 except Exception as ex:
@@ -203,21 +235,29 @@ class SipocService:
                 # 如果文件已经被引用到知识库，则不创建知识库
                 dataset_id = document.dataset_id
 
-        # dataset_configs.datasets.datasets里面新增知识库{"dataset": {"id": "dataset_id", "enabled": True}}
         app_config["dataset_configs"]["datasets"]["datasets"].append({
             "dataset": {
                 "id": dataset_id,
                 "enabled": True
             }
         })
+        # 新增知识库后，需要绑定自动生成的标签
+        TagService.bind_knowledge_autogen_tag(dataset_id, tenant_id=user.current_tenant_id)
+
         # 新增知识库后，需要更新app_config里面的pre_prompt，如果sipoc附件参数在pre_prompt中，进行替换，否则将使用知识库回答文件，加到提示词最后
         if key in app_config["pre_prompt"]:
             app_config["pre_prompt"] = app_config["pre_prompt"].replace(key, f"(你可以使用知识库来回答用户的问题, 知识库的id是：{dataset_id})")
         else:
             app_config["pre_prompt"] += f"(你可以使用知识库来回答用户的问题, 知识库的id是：{dataset_id})"
-
+        print(f"app_config.pre_prompt: {app_config["pre_prompt"]}")
         return app_config
         # response = {"dataset": dataset, "documents": documents, "batch": batch}
+
+    @staticmethod
+    def is_sipoc_output(value: str) -> bool:
+        if "gen_output" in value:
+            return True
+        return False
 
     @staticmethod
     def generate_default_knowledge_config(file_id: str) -> KnowledgeConfig:
@@ -229,8 +269,8 @@ class SipocService:
 
         args = {
             "indexing_technique": "high_quality",
-            "embedding_model": "netease-youdao/bce-embedding-base_v1",
-            "embedding_model_provider": "langgenius/siliconflow/siliconflow",
+            "embedding_model": "embedding",
+            "embedding_model_provider": "langgenius/openai_api_compatible/openai_api_compatible",
             "data_source": {
                 "type": "upload_file",
                 "info_list": {
@@ -265,8 +305,8 @@ class SipocService:
                 "search_method": "semantic_search",    # 向量检索
                 "reranking_enable": True,
                 "reranking_model": {
-                    "reranking_provider_name": "langgenius/siliconflow/siliconflow",
-                    "reranking_model_name": "netease-youdao/bce-reranker-base_v1"
+                    "reranking_provider_name": "",
+                    "reranking_model_name": ""
                 },
                 "top_k": 3,
                 "score_threshold_enabled": False,
@@ -287,10 +327,10 @@ class SipocService:
         :return:
         """
 
-        endpoint_test = "172.16.23.77:9000"
+        endpoint_test = "http://172.16.23.77:9000"
         access_key_test = "666e6cYxFod8Dr3QMnRx"
         secret_key_test = "F3xWGSfl2B6xqCo5EReTiUnjHG6fYEVFZ4LX8jh2"
-        bucket_name_test = "cbrain-evolve"
+        bucket_name_test = "cbrain"
 
         filename = file_path.split("/")[-1]
 
@@ -312,12 +352,13 @@ class SipocService:
             # print(f"文件下载成功: {minio_object_name} -> {local_file_path}")
             # 获取文件元数据
             obj_info = s3.head_object(Bucket=bucket_name_test, Key=file_path)
-            # print(obj_info)
-            # print(obj_info['ContentLength'])
-            # print(obj_info['ContentType'])
-            # print(obj_info['ETag'])
+            print(obj_info)
+            print(obj_info['ContentLength'])
+            print(obj_info['ContentType'])
+            print(obj_info['ETag'])
             content = s3.get_object(Bucket=bucket_name_test, Key=file_path)['Body'].read()
             filehash = hashlib.sha3_256(content).hexdigest()
+            print(filehash)
             return content, filename, obj_info['ContentType'], filehash, obj_info['ContentLength']
 
         except Exception as e:
@@ -326,10 +367,18 @@ class SipocService:
 
 
     @staticmethod
-    def convert_file_to_text(file_content: bytes) -> str:
+    def convert_file_to_text(file_content: bytes, file_name: str) -> bytes:
         """
         Convert file content to text, 将包含图片的文件，通过ocr等技术转化成文本文件
-        :param file_content:
-        :return:
         """
+        try:
+            payload = {
+                "file_flow": file_content,
+                "file_name": file_name
+            }
+            response = requests.post("http://172.16.23.103:5551/handle_files", json.dumps(payload))
+            file_bytes = response.json().get("file_bytes")
+            return file_bytes
+        except Exception as e:
+            print(f"转换失败: {str(e)}")
 
