@@ -1,4 +1,5 @@
 import contextvars
+import json
 import logging
 import threading
 import uuid
@@ -110,35 +111,6 @@ class AgentChatAppGenerator(MessageBasedAppGenerator):
         # get app model config
         app_model_config = self._get_app_model_config(app_model=app_model, conversation=conversation)
 
-        #sipoc_config = args["sipoc_config"]
-        sipoc_config_dict = args["sipoc_config"]
-
-        if sipoc_config_dict:
-            try:
-                # 自动转换字典为SipocModelConfig实例，嵌套的modelContext会转为IORCConfig
-                sipoc_config = SipocModelConfig(**sipoc_config_dict)
-            except Exception as e:
-                raise ValueError(f"Invalid sipoc_config format: {e}")
-            print("generate sipoc_config", sipoc_config)
-
-            # generate sipoc kv
-            sipoc_kv = SipocService.generate_sipoc_kv(sipoc_config, invoke_from != InvokeFrom.DEBUGGER)
-            print("generate sipoc_kv", sipoc_kv)
-            # generate sipoc kv
-            output_sipoc_kv = SipocService.generate_sipoc_output_kv(sipoc_config, invoke_from != InvokeFrom.DEBUGGER)
-            print("generate sipoc_kv", output_sipoc_kv)
-            sipoc_kv.update(output_sipoc_kv)
-
-            # add sipoc kv to inputs
-            for k, v in sipoc_kv.items():
-                is_file, file_url = SipocService.is_file_kv(k, v)
-                if is_file:
-                    app_model_config = SipocService.handle_sipoc_file(k, file_url, app_model_config)
-                else:
-                    inputs[k] = v
-            #inputs["sipoc_config"] = sipoc_config.__dict__
-            print("generate inputs", inputs)
-
         # validate override model config
         override_model_config_dict = None
         if args.get("model_config"):
@@ -178,6 +150,38 @@ class AgentChatAppGenerator(MessageBasedAppGenerator):
             conversation=conversation,
             override_config_dict=override_model_config_dict,
         )
+
+        sipoc_config_dict = args["sipoc_config"]
+        if sipoc_config_dict:
+            try:
+                # 自动转换字典为SipocModelConfig实例，嵌套的modelContext会转为IORCConfig
+                sipoc_config = SipocModelConfig(**sipoc_config_dict)
+            except Exception as e:
+                raise ValueError(f"Invalid sipoc_config format: {e}")
+            print("generate sipoc_config", sipoc_config)
+
+            # generate sipoc kv
+            sipoc_kv = SipocService.generate_sipoc_kv(sipoc_config, invoke_from != InvokeFrom.DEBUGGER)
+            # generate sipoc kv
+            output_sipoc_kv = SipocService.generate_sipoc_output_kv(sipoc_config, invoke_from != InvokeFrom.DEBUGGER)
+            sipoc_kv.update(output_sipoc_kv)
+
+            # add sipoc kv to inputs
+            for k, v in sipoc_kv.items():
+                is_file, file_url = SipocService.is_file_kv(k, v)
+                if is_file:
+                    app_config.app_model_config_dict = SipocService.handle_sipoc_file(k, file_url, app_config.app_model_config_dict, user)
+                else:
+                    inputs[k] = v
+            print("generate inputs", inputs)
+
+            # 将sipoc_config序列化为JSON字符串，添加到inputs中
+            try:
+                # 假设SipocModelConfig有to_dict()方法将对象转为字典（如果没有，需手动构造字典）
+                sipoc_config_dict = sipoc_config.to_dict()  # 转换为字典
+                inputs["sipoc_config"] = json.dumps(sipoc_config_dict)  # 序列化为JSON字符串
+            except Exception as e:
+                raise ValueError(f"Failed to serialize sipoc_config to string: {e}")
 
         # get tracing instance
         trace_manager = TraceQueueManager(app_model.id, user.id if isinstance(user, Account) else user.session_id)

@@ -1,3 +1,5 @@
+import json
+import logging
 import uuid
 from typing import cast, Optional
 
@@ -168,6 +170,7 @@ class AppApi(Resource):
         app_service = AppService()
 
         app_model = app_service.get_app(app_model)
+        logging.INFO("AppApi get app_model ")
 
         if FeatureService.get_system_features().webapp_auth.enabled:
             app_setting = EnterpriseService.WebAppAuth.get_app_access_mode_by_id(app_id=str(app_model.id))

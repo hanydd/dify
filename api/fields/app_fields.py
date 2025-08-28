@@ -117,7 +117,6 @@ app_partial_fields = {
     "author_name": fields.String,
 }
 
-
 app_pagination_fields = {
     "page": fields.Integer,
     "limit": fields.Integer(attribute="per_page"),
@@ -172,6 +171,16 @@ deleted_tool_fields = {
     "provider_id": fields.String,
 }
 
+app_custom_config_fields = {
+    "activityLabelId": fields.String,
+    "activityNodeId": fields.String,
+    "processId": fields.String,
+    "modelType": fields.String,
+    "procedureId": fields.String,
+    "valueChainId": fields.String,
+    "valueFlowVersionId": fields.String,
+}
+
 app_detail_fields_with_site = {
     "id": fields.String,
     "name": fields.String,
@@ -184,6 +193,7 @@ app_detail_fields_with_site = {
     "enable_site": fields.Boolean,
     "enable_api": fields.Boolean,
     "model_config": fields.Nested(model_config_fields, attribute="app_model_config", allow_null=True),
+    "custom_config": fields.Nested(app_custom_config_fields, attribute="custom_config", allow_null=True),
     "workflow": fields.Nested(workflow_partial_fields, allow_null=True),
     "site": fields.Nested(site_fields),
     "api_base_url": fields.String,
@@ -195,8 +205,11 @@ app_detail_fields_with_site = {
     "updated_at": TimestampField,
     "deleted_tools": fields.List(fields.Nested(deleted_tool_fields)),
     "access_mode": fields.String,
+    'scene_type': fields.String(
+        description='Scene type from model configs',
+        attribute=lambda app: get_scene_type_from_config(app)  # 通过 attribute 动态获取
+    ),
 }
-
 
 app_site_fields = {
     "app_id": fields.String,
@@ -243,3 +256,34 @@ app_server_fields = {
     "created_at": TimestampField,
     "updated_at": TimestampField,
 }
+
+app_simple_fields = {
+    "id": fields.String,
+    "name": fields.String,
+    "description": fields.String,
+    "mode": fields.String(attribute="mode_compatible_with_agent"),
+    "icon_type": fields.String,
+    "icon": fields.String,
+    "icon_background": fields.String,
+}
+
+
+def get_cbrain_common_fields(data_field):
+    return {
+        "date": fields.String,
+        "msg": fields.String,
+        "code": fields.Integer,
+        "success": fields.Boolean,
+        "data": fields.Nested(data_field),
+    }
+
+# 新增解析函数，从 app_model_config.configs 中提取 scene_type
+def get_scene_type_from_config(app):
+    try:
+        if app.app_model_config and app.app_model_config.configs:
+            configs_dict = json.loads(app.app_model_config.configs)
+            return configs_dict.get('scene_type')
+        return None
+    except Exception as e:
+        logger.warning(f"Failed to parse scene_type: {str(e)}")
+        return None

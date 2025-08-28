@@ -371,7 +371,7 @@ class SimplePromptTransform(PromptTransform):
             base_template = FILL_TABLE_PROMPT_TEMPLATE
         else:
             base_template = ""
-        #print("base_template:", base_template)
+        print("base_template:", base_template)
         base_template = self.process_pre_prompt(base_template, user_inputs, inputs, False)
 
 
@@ -381,7 +381,7 @@ class SimplePromptTransform(PromptTransform):
             final_pre_prompt = f"{pre_prompt.rstrip()}\n\n{base_template.lstrip()}"
         else:
             final_pre_prompt = base_template
-        #print("final_pre_prompt:", final_pre_prompt)
+        print("final_pre_prompt:", final_pre_prompt)
 
         # 3. 获取提示词规则（修复场景类型参数传递）
         prompt_rules = self._get_prompt_rule(
@@ -426,35 +426,38 @@ class SimplePromptTransform(PromptTransform):
         """
         import re
 
-        #print("process_pre_prompt  inputs:", inputs)
+        print("process_pre_prompt  inputs:", inputs)
 
         # 1. 从inputs中提取以ctx_开头的键值对，构成input_key_values字典
         input_key_values = {
             key: value for key, value in inputs.items()
             if key.startswith('ctx_')
         }
-        #print("input_key_values:", input_key_values)
+        print("input_key_values:", input_key_values)
 
         # 2. 从inputs中提取以gen_开头的键值对，构成output_results字典
         output_results = {
             key: value for key, value in inputs.items()
             if key.startswith('gen_')
         }
-        #print("output_results:", output_results)
+        print("output_results:", output_results)
 
-        output_related_information: Dict[str, Any] = {}
-        for item in user_inputs:
-            if isinstance(item, dict) and "sipoc_config" in item:
-                output_related_information = item["sipoc_config"]
-                break
-
+        #output_related_information: Dict[str, Any] = {}
+        # for item in user_inputs:
+        #     if isinstance(item, dict) and "sipoc_config" in item:
+        #         output_related_information = item["sipoc_config"]
+        #         break
+        output_related_information = ""
+        sipoc_config_str = inputs.get("sipoc_config")
+        if not sipoc_config_str:
+            output_related_information = sipoc_config_str
         #output_related_information = inputs.get("sipoc_config", {})
         combined_info = {
             "input_key_values": input_key_values,
             "output_results": output_results,
             "output_related_information": output_related_information
         }
-        #print("combined_info:", combined_info)
+        print("combined_info:", combined_info)
 
         # # 4. 复用已定义的正则表达式（与PromptTemplateParser保持一致）
         # pattern = WITH_VARIABLE_TMPL_REGEX if with_variable_tmpl else REGEX
@@ -497,7 +500,7 @@ class SimplePromptTransform(PromptTransform):
         #print("get_scene_type configs_dict", configs_dict)
 
         scene_type_str: Optional[str] = configs_dict.get("scene_type")
-        #print("get_scene_type configs_dict", configs_dict)
+        print("get_scene_type configs_dict", configs_dict)
 
         normalized_str = scene_type_str.lower()
         # 处理空值情况
