@@ -67,12 +67,13 @@ class SipocService:
         iorcConfig = sipoc_config.modelGenerate
         if iorcConfig:
             if iorcConfig.outputNodes:
+                print("generate_sipoc_output_kv iorcConfig.outputNodes", iorcConfig.outputNodes)
                 for outputNode in iorcConfig.outputNodes:
-                    #print("generate_sipoc_output_kv outputNode", outputNode)
+                    print("generate_sipoc_output_kv outputNode", outputNode)
                     node_kv = SipocService.generate_node_kv(outputNode, 'gen_output')
-                    #print("generate_sipoc_output_kv node_kv:", node_kv)
+                    print("generate_sipoc_output_kv node_kv:", node_kv)
                     sipoc_kv.update(node_kv)
-        #print("generate_sipoc_output_kv sipoc_kv:", sipoc_kv)
+        print("generate_sipoc_output_kv sipoc_kv:", sipoc_kv)
         return sipoc_kv
 
     @staticmethod

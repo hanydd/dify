@@ -1,4 +1,5 @@
 import json
+import logging
 
 from flask_restful import fields
 
@@ -205,6 +206,9 @@ app_detail_fields_with_site = {
     "updated_at": TimestampField,
     "deleted_tools": fields.List(fields.Nested(deleted_tool_fields)),
     "access_mode": fields.String,
+    'scene_type': fields.String(
+        attribute=lambda app: get_scene_type_from_config(app)  # 通过 attribute 动态获取
+    ),
 }
 
 app_site_fields = {
@@ -272,3 +276,17 @@ def get_cbrain_common_fields(data_field):
         "success": fields.Boolean,
         "data": fields.Nested(data_field),
     }
+
+
+# 新增解析函数，从 app_model_config.configs 中提取 scene_type
+def get_scene_type_from_config(app):
+    try:
+        # 检查app_model_config和configs是否存在，且configs是字典类型
+        if app.app_model_config and isinstance(app.app_model_config.configs, dict):
+            configs_dict = app.app_model_config.configs  # 直接使用字典，无需JSON解析
+            print("get_scene_type_from_config configs_dict:", configs_dict)
+            return configs_dict.get('scene_type')
+        return None
+    except Exception as e:
+        logging.error(f"Failed to parse scene_type: {str(e)}")
+        return None

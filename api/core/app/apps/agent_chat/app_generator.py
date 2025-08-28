@@ -1,4 +1,5 @@
 import contextvars
+import json
 import logging
 import threading
 import uuid
@@ -173,6 +174,14 @@ class AgentChatAppGenerator(MessageBasedAppGenerator):
                 else:
                     inputs[k] = v
             print("generate inputs", inputs)
+
+            # 将sipoc_config序列化为JSON字符串，添加到inputs中
+            try:
+                # 假设SipocModelConfig有to_dict()方法将对象转为字典（如果没有，需手动构造字典）
+                sipoc_config_dict = sipoc_config.dict()  # 转换为字典
+                inputs["sipoc_config"] = json.dumps(sipoc_config_dict)  # 序列化为JSON字符串
+            except Exception as e:
+                raise ValueError(f"Failed to serialize sipoc_config to string: {e}")
 
         # get tracing instance
         trace_manager = TraceQueueManager(app_model.id, user.id if isinstance(user, Account) else user.session_id)
