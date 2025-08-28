@@ -718,12 +718,12 @@ class ProviderConfiguration(BaseModel):
         :param credential_form_schemas:
         :return:
         """
-        secret_input_form_variables = []
-        for credential_form_schema in credential_form_schemas:
-            if credential_form_schema.type == FormType.SECRET_INPUT:
-                secret_input_form_variables.append(credential_form_schema.variable)
+        # secret_input_form_variables = []
+        # for credential_form_schema in credential_form_schemas:
+        #     if credential_form_schema.type == FormType.SECRET_INPUT:
+        #         secret_input_form_variables.append(credential_form_schema.variable)
 
-        return secret_input_form_variables
+        return []
 
     def obfuscated_credentials(self, credentials: dict, credential_form_schemas: list[CredentialFormSchema]) -> dict:
         """
