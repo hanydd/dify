@@ -233,7 +233,7 @@ class ProviderConfiguration(BaseModel):
             for key, value in credentials.items():
                 # if send [__HIDDEN__] in secret input, it will be same as original value
                 if value == HIDDEN_VALUE:
-                    credentials[key] = encrypter.decrypt_token(self.tenant_id, original_credentials[key])
+                    credentials[key] = original_credentials[key]
 
         model_provider_factory = ModelProviderFactory(self.tenant_id)
         credentials = model_provider_factory.provider_credentials_validate(
@@ -394,7 +394,7 @@ class ProviderConfiguration(BaseModel):
             for key, value in credentials.items():
                 # if send [__HIDDEN__] in secret input, it will be same as original value
                 if value == HIDDEN_VALUE:
-                    credentials[key] = encrypter.decrypt_token(self.tenant_id, original_credentials[key])
+                    credentials[key] = original_credentials[key]
 
         model_provider_factory = ModelProviderFactory(self.tenant_id)
         credentials = model_provider_factory.model_credentials_validate(
