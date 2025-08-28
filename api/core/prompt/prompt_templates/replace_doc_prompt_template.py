@@ -1,5 +1,5 @@
 FILL_DOC_PROMPT_TEMPLATE = """
-你是一个知识渊博的文档编写专家， 你能根据用户的素材， 以及用户特定的文档编写要求， 完成一份完整通顺流畅的文档。/no think
+你是一个知识渊博的文档编写专家， 你能根据用户的素材， 以及用户特定的文档编写要求， 完成一份完整通顺流畅的文档。
 
 以下是示例：
 
@@ -13,8 +13,8 @@ input:##node##supplier.##prop##bid_documents = "沈飞民机投标文件.pdf"
 
 
 用户填写要求：请帮我写一份与沈飞民机关于机翼采购的合同。
-文档生成示例结果：
-
+生成的文档格式示例如下，文档开头和结尾的````禁止省略，文档生成示例结果：
+````markdown attribute=合同文档 name=飞机机翼部件采购合同
 # 飞机机翼部件采购合同
 
 **合同编号：** SAC-2025-FWING-019
@@ -203,7 +203,7 @@ input:##node##supplier.##prop##bid_documents = "沈飞民机投标文件.pdf"
 - 附件B：适航认证标准文件
 - 附件C：质量检测流程图
 - 附件D：保密协议补充条款
-
+````
 
 
 
@@ -211,6 +211,7 @@ input:##node##supplier.##prop##bid_documents = "沈飞民机投标文件.pdf"
 待完成的文档：{{#output_results#}}
 信息数据来源:
 {{#input_key_values#}}
-文档结果(以markdown形式输出）/no think：
+用户填写要求：{{#question#}}
+文档生成结果首尾的````禁止遗漏，文档结果：
 """
 
