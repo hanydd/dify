@@ -449,8 +449,9 @@ class SimplePromptTransform(PromptTransform):
         #         break
         output_related_information = ""
         sipoc_config_str = inputs.get("sipoc_config")
-        if not sipoc_config_str:
+        if sipoc_config_str:
             output_related_information = sipoc_config_str
+        print("process_pre_prompt sipoc_config_str:, output_related_information:,",sipoc_config_str, output_related_information)
         #output_related_information = inputs.get("sipoc_config", {})
         combined_info = {
             "input_key_values": input_key_values,
@@ -459,21 +460,6 @@ class SimplePromptTransform(PromptTransform):
         }
         print("combined_info:", combined_info)
 
-        # # 4. 复用已定义的正则表达式（与PromptTemplateParser保持一致）
-        # pattern = WITH_VARIABLE_TMPL_REGEX if with_variable_tmpl else REGEX
-        #
-        # # 5. 定义替换函数：处理每个匹配到的占位符
-        # def replace_placeholder(match: re.Match) -> str:
-        #     var_content = match.group(1)  # 获取变量内容
-        #     original_placeholder = match.group(0)  # 原始占位符
-        #
-        #     # 6. 处理特殊变量（带#的变量），去除#后作为key查找
-        #     input_key = var_content.strip("#")
-        #     if input_key in combined_info:
-        #         return str(combined_info[input_key])  # 替换为实际值
-        #     else:
-        #         return original_placeholder  # 未找到则保留原始占位符
-        #
         # # 7. 执行全局替换并统一格式
         # replaced_template = pattern.sub(replace_placeholder, template_str)
         result = template_str
