@@ -97,13 +97,30 @@ class SipocService:
 
         if not output_kv or not user_input_form:
             return ""
-        output_kv = json.loads(output_kv)
+
+        def get_output_json(str):
+            index = str.find("```json")
+            if index != -1:
+                str = str[index + 7:]
+            index = str.find("```")
+            if index != -1:
+                str = str[:index]
+            return str
+        output_kv = get_output_json(output_kv)
+        try:
+            output_kv = json.loads(output_kv)
+        except:
+            print("convert_sipoc_output_kv output_kv:", output_kv)
+            return ""
         user_input_form = json.loads(user_input_form)
+        print("convert_sipoc_output_kv user_input_form:", user_input_form)
+
         sipoc_config = None
         for item in user_input_form:
             if 'sipoc_config' in item.keys():
                 sipoc_config = SipocModelConfig(**item['sipoc_config'])
                 break
+        print("convert_sipoc_output_kv sipoc_config:", sipoc_config)
         if not sipoc_config or not sipoc_config.modelGenerate:
             return ""
         for outputNode in sipoc_config.modelGenerate.outputNodes:
