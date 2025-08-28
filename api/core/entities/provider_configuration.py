@@ -231,10 +231,9 @@ class ProviderConfiguration(BaseModel):
 
             # encrypt credentials
             for key, value in credentials.items():
-                if key in provider_credential_secret_variables:
-                    # if send [__HIDDEN__] in secret input, it will be same as original value
-                    if value == HIDDEN_VALUE and key in original_credentials:
-                        credentials[key] = encrypter.decrypt_token(self.tenant_id, original_credentials[key])
+                # if send [__HIDDEN__] in secret input, it will be same as original value
+                if value == HIDDEN_VALUE:
+                    credentials[key] = encrypter.decrypt_token(self.tenant_id, original_credentials[key])
 
         model_provider_factory = ModelProviderFactory(self.tenant_id)
         credentials = model_provider_factory.provider_credentials_validate(
@@ -393,10 +392,9 @@ class ProviderConfiguration(BaseModel):
 
             # decrypt credentials
             for key, value in credentials.items():
-                if key in provider_credential_secret_variables:
-                    # if send [__HIDDEN__] in secret input, it will be same as original value
-                    if value == HIDDEN_VALUE and key in original_credentials:
-                        credentials[key] = encrypter.decrypt_token(self.tenant_id, original_credentials[key])
+                # if send [__HIDDEN__] in secret input, it will be same as original value
+                if value == HIDDEN_VALUE:
+                    credentials[key] = encrypter.decrypt_token(self.tenant_id, original_credentials[key])
 
         model_provider_factory = ModelProviderFactory(self.tenant_id)
         credentials = model_provider_factory.model_credentials_validate(
@@ -718,12 +716,12 @@ class ProviderConfiguration(BaseModel):
         :param credential_form_schemas:
         :return:
         """
-        secret_input_form_variables = []
-        for credential_form_schema in credential_form_schemas:
-            if credential_form_schema.type == FormType.SECRET_INPUT:
-                secret_input_form_variables.append(credential_form_schema.variable)
+        # secret_input_form_variables = []
+        # for credential_form_schema in credential_form_schemas:
+        #     if credential_form_schema.type == FormType.SECRET_INPUT:
+        #         secret_input_form_variables.append(credential_form_schema.variable)
 
-        return secret_input_form_variables
+        return []
 
     def obfuscated_credentials(self, credentials: dict, credential_form_schemas: list[CredentialFormSchema]) -> dict:
         """
