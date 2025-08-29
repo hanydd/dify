@@ -973,66 +973,6 @@ class TenantService:
             raise
 
     @staticmethod
-    def sync_cbrain_tenant_info(account: Account, cbrain_tenant_list: list):
-        """
-        同步C大脑租户信息到Dify工作空间
-
-        Args:
-            account: 用户账户
-            cbrain_tenant_list: C大脑租户列表
-        """
-        try:
-            # 获取用户现有的工作空间
-            existing_tenants = TenantService.get_join_tenants(account)
-            logging.info(f"开始同步C大脑租户信息，用户现有工作空间数量: {len(existing_tenants)}")
-
-            for cbrain_tenant_info in cbrain_tenant_list:
-                cbrain_tenant_id = cbrain_tenant_info.get("id")  # tenantId
-                cbrain_tenant_name = cbrain_tenant_info.get("name", "")
-
-                if not cbrain_tenant_id:
-                    logging.warning(f"跳过无效的C大脑租户信息: {cbrain_tenant_info}")
-                    continue
-
-                # 查找对应的Dify工作空间
-                existing_tenant = None
-                for tenant in existing_tenants:
-                    if tenant.cbrain_tenant_id == cbrain_tenant_id:
-                        existing_tenant = tenant
-                        break
-
-                if existing_tenant:
-                    # 更新工作空间信息
-                    updated = False
-
-                    # 更新租户名称（如果C大脑的名称有变化）
-                    if cbrain_tenant_name and existing_tenant.name != cbrain_tenant_name:
-                        existing_tenant.name = cbrain_tenant_name
-                        updated = True
-                        logging.info(f"更新工作空间 {existing_tenant.id} 名称: {cbrain_tenant_name}")
-
-                    if updated:
-                        db.session.commit()
-                        logging.info(f"工作空间 {existing_tenant.id} 信息同步完成")
-                else:
-                    # 如果Dify中没有对应的工作空间，创建一个新的
-                    logging.info(f"为C大脑租户 {cbrain_tenant_id} 创建新的Dify工作空间")
-                    tenant = TenantService.create_tenant(name=cbrain_tenant_name)
-                    tenant.cbrain_tenant_id = cbrain_tenant_id
-                    db.session.commit()
-
-                    # 关联用户为所有者
-                    TenantService.create_tenant_member(tenant, account, role="owner")
-                    tenant_was_created.send(tenant)
-
-            logging.info(f"用户 {account.id} 的C大脑租户信息同步完成")
-
-        except Exception as e:
-            logging.error(f"同步C大脑租户信息失败: {str(e)}")
-            db.session.rollback()
-            raise
-
-    @staticmethod
     def create_owner_tenant_if_not_exist(
         account: Account, name: Optional[str] = None, is_setup: Optional[bool] = False
     ):
