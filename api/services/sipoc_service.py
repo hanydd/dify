@@ -70,7 +70,7 @@ class SipocService:
                 print("generate_sipoc_output_kv iorcConfig.outputNodes", iorcConfig.outputNodes)
                 for outputNode in iorcConfig.outputNodes:
                     print("generate_sipoc_output_kv outputNode", outputNode)
-                    node_kv = SipocService.generate_node_kv(outputNode, 'gen_output')
+                    node_kv = SipocService.generate_output_node_kv(outputNode, 'gen_output')
                     print("generate_sipoc_output_kv node_kv:", node_kv)
                     sipoc_kv.update(node_kv)
         print("generate_sipoc_output_kv sipoc_kv:", sipoc_kv)
@@ -136,6 +136,30 @@ class SipocService:
                         key2 = key1 + '.##prop##' + prop.name
                         if prop.value:
                             sipoc_kv[key2] = prop.value
+
+        return sipoc_kv
+
+    @staticmethod
+    def generate_output_node_kv(nodeObj: NodeObject, prefix: str) -> dict:
+        sipoc_kv = {}
+        key = prefix + ':##node##' + nodeObj.label
+        if nodeObj.property:
+            for prop in nodeObj.property:
+                if not prop.name:
+                    continue
+                # input:##node##xx_label.##prop##xx_prop
+                key1 = key + '.##prop##' + prop.name
+                sipoc_kv[key1] = ""
+        if nodeObj.subNodes:
+            for subNode in nodeObj.subNodes:
+                key1 = key + '.##edge##' + subNode.relateEdge + '##' + subNode.label
+                if subNode.property:
+                    for prop in subNode.property:
+                        if not prop.name:
+                            continue
+                        # input:##node##xx_label.##edge##xx_edge##xx_label.##prop##xx_prop
+                        key2 = key1 + '.##prop##' + prop.name
+                        sipoc_kv[key2] = ""
 
         return sipoc_kv
 
