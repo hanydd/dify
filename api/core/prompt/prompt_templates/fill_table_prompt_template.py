@@ -29,59 +29,31 @@ FILL_TABLE_PROMPT_TEMPLATE = """
     [output:##node##vacation-requirement:##prop##name, output:##node##vacation-requirement:##prop##sex, output:##node##vacation-requirement:##edge##vacation.##prop##vacation_type,
     output:##node##vacation-requirement:##edge##vacation.##prop##reason, output:##node##vacation-requirement:##edge##vacation.##prop##time, output:##node##vacation-requirement:##prop##sign]
     待填字段详情：
-    {
-            "inputNodes": [
-                {
-                    "label": "productQuery",
-                    "comment": "产品查询条件",
-                    "relateEdge": "",
-                    "property": [
-                        { "name": "productName", "type": "单行文本", "value": "" },
-                        { "name": "priceRange", "type": "数值", "unit": "元", "value": "" },
-                        { "name": "categories", "type": "多选", "options": ["电子产品", "服装", "食品"], "value": "" }
-                    ],
-                    "subNodes": []
-                }
+    [
+        {
+            "label": "vacation-requirement",
+            "comment": "请假申请表",
+            "relateEdge": "",
+            "property": [
+                { "name": "name", "comment": "姓名", "type": "单行文本", "value": "" },
+                { "name": "sex", "comment": "性别", "type": "单选", "options": ["男", "女"], "value": "" },
+                { "name": "sign", "comment": "签字", "type": "单行文本", "value": "" }
             ],
-            "outputNodes": [
+            "subNodes": [
                 {
-                    "label": "analysisResult",
-                    "comment": "数据分析结果",
-                    "relateEdge": "",
-                    "property": [
-                        { "name": "salesTrend", "type": "图片", "value": "" },
-                        { "name": "userPortrait", "type": "富文本", "value": "" },
-                        { "name": "riskAssessment", "type": "单选", "options": ["低风险", "中风险", "高风险"], "value": "" }
-                    ],
-                    "subNodes": [
-                        {
-                            "label": "detailData",
-                            "comment": "详细数据明细",
-                            "relateEdge": "analysisResult",
-                            "Property": [
-                                { "name": "region", "type": "单行文本", "value": "" },
-                                { "name": "salesVolume", "type": "数值", "unit": "件", "value": "" },
-                                { "name": "growthRate", "type": "数值", "unit": "%", "value": "" }
-                            ],
-                            "subNodes": []
-                        }
-                    ]
-                }
-            ],
-            "controlNodes": [
-                {
-                    "label": "notificationSetting",
-                    "comment": "通知配置",
-                    "relateEdge": "",
-                    "property": [
-                        { "name": "notifyType", "type": "多选", "options": ["短信", "邮件", "站内信"], "value": "" },
-                        { "name": "triggerCondition", "type": "公式", "expression": "amount > 1000", "value": "" },
-                        { "name": "template", "type": "附件", "value": "" }
+                    "label": "vacation",
+                    "comment": "请假信息",
+                    "relateEdge": "vacation-requirement",
+                    "Property": [
+                        { "name": "vacation_type", "comment": "请假类型, "type": "单选", "options": ["事假", "病假", "年假", "产假", "婚假", "丧假", "其他"], "value": "" },
+                        { "name": "reason", "comment": "请假原因", "type": "单行文本", "value": "" },
+                        { "name": "time", "comment": "请假时长", "type": "单行文本", "value": "" }
                     ],
                     "subNodes": []
                 }
             ]
         }
+    ]
     信息数据来源：
     1、
     {
