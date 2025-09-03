@@ -9,7 +9,8 @@ from core.model_runtime.entities import (
     TextPromptMessageContent,
     UserPromptMessage,
 )
-from core.model_runtime.entities.message_entities import ImagePromptMessageContent, PromptMessageContentUnionTypes
+from core.model_runtime.entities.message_entities import ImagePromptMessageContent, PromptMessageContentUnionTypes, \
+    PromptMessageRole
 from core.model_runtime.utils.encoders import jsonable_encoder
 
 
@@ -25,6 +26,35 @@ class CotChatAgentRunner(CotAgentRunner):
         if not prompt_entity:
             raise ValueError("Agent prompt configuration is not set")
         first_prompt = prompt_entity.first_prompt
+
+        system_prompt = (
+            first_prompt.replace("{{instruction}}", self._instruction)
+            .replace("{{tools}}", json.dumps(jsonable_encoder(self._prompt_messages_tools)))
+            .replace("{{tool_names}}", ", ".join([tool.name for tool in self._prompt_messages_tools]))
+        )
+
+        return SystemPromptMessage(content=system_prompt)
+
+    def _organize_custom_system_prompt(self) -> SystemPromptMessage:
+        """
+        Organize system prompt
+        """
+        assert self.app_config.agent
+        assert self.app_config.agent.prompt
+
+        prompt_entity = self.app_config.agent.prompt
+        if not prompt_entity:
+            raise ValueError("Agent prompt configuration is not set")
+        first_prompt = prompt_entity.first_prompt
+
+        for msg in self.origin_prompt_messages:
+            print("_organize_custom_system_prompt msg:", msg)
+            # 检查消息角色是否为系统角色
+            if msg.role == PromptMessageRole.SYSTEM:
+                # 利用类自带的get_text_content()方法提取文本内容，无需重复处理content类型
+                self._instruction = msg.get_text_content()
+                break  # 仅取第一个系统消息
+
 
         system_prompt = (
             first_prompt.replace("{{instruction}}", self._instruction)
@@ -71,7 +101,8 @@ class CotChatAgentRunner(CotAgentRunner):
         Organize
         """
         # organize system prompt
-        system_message = self._organize_system_prompt()
+        #system_message = self._organize_system_prompt()
+        system_message = self._organize_custom_system_prompt()
 
         # organize current assistant messages
         agent_scratchpad = self._agent_scratchpad

@@ -371,7 +371,7 @@ class SimplePromptTransform(PromptTransform):
             base_template = FILL_TABLE_PROMPT_TEMPLATE
         else:
             base_template = ""
-        print("base_template:", base_template)
+        #print("base_template:", base_template)
         base_template = self.process_pre_prompt(base_template, user_inputs, inputs, False)
 
 
@@ -381,7 +381,7 @@ class SimplePromptTransform(PromptTransform):
             final_pre_prompt = f"{pre_prompt.rstrip()}\n\n{base_template.lstrip()}"
         else:
             final_pre_prompt = base_template
-        print("final_pre_prompt:", final_pre_prompt)
+        #print("final_pre_prompt:", final_pre_prompt)
 
         # 3. 获取提示词规则（修复场景类型参数传递）
         prompt_rules = self._get_prompt_rule(
@@ -400,8 +400,11 @@ class SimplePromptTransform(PromptTransform):
                 prompt += prompt_rules["context_prompt"]
                 special_variable_keys.append("#context#")
             elif order == "pre_prompt" and final_pre_prompt:
+                #pre_prompt_template = PromptTemplateParser(template=pre_prompt)
+                prompt += final_pre_prompt + "\n"
                 pre_prompt_template = PromptTemplateParser(template=pre_prompt)
                 custom_variable_keys = pre_prompt_template.variable_keys
+                #print("get_prompt_template_by_scene_type prompt:", prompt)
             elif order == "histories_prompt" and with_memory_prompt:
                 prompt += prompt_rules["histories_prompt"]
                 special_variable_keys.append("#histories#")
@@ -409,6 +412,7 @@ class SimplePromptTransform(PromptTransform):
         if query_in_prompt:
             prompt += prompt_rules.get("query_prompt", "{{#query#}}")
             special_variable_keys.append("#query#")
+
 
         return {
             "prompt_template": PromptTemplateParser(template=prompt),
@@ -451,7 +455,7 @@ class SimplePromptTransform(PromptTransform):
         sipoc_config_str = inputs.get("sipoc_config")
         if sipoc_config_str:
             output_related_information = sipoc_config_str
-        print("process_pre_prompt sipoc_config_str:, output_related_information:,",sipoc_config_str, output_related_information)
+        #print("process_pre_prompt sipoc_config_str:, output_related_information:,",sipoc_config_str, output_related_information)
         #output_related_information = inputs.get("sipoc_config", {})
         combined_info = {
             "input_key_values": input_key_values,
@@ -529,6 +533,7 @@ class SimplePromptTransform(PromptTransform):
                 model_config=model_config,
                 image_detail_config=image_detail_config,
             )
+            #print("get_prompt_by_scene prompt_messages---:", prompt_messages)
         else:
             prompt_messages, stops = self._get_completion_model_prompt_messages_by_scene(
                 app_mode=app_mode,
@@ -542,6 +547,7 @@ class SimplePromptTransform(PromptTransform):
                 model_config=model_config,
                 image_detail_config=image_detail_config,
             )
+            #print("get_prompt_by_scene prompt_messages***:", prompt_messages)
 
         return prompt_messages, stops
 
