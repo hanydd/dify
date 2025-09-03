@@ -173,6 +173,7 @@ class AgentChatAppRunner(AppRunner):
             query=query or "",
             memory=memory,
         )
+        #print("after organize_prompt_messages prompt_messages: ",prompt_messages)
 
         # change function call strategy based on LLM model
         llm_model = cast(LargeLanguageModel, model_instance.model_type_instance)

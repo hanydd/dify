@@ -75,6 +75,8 @@ class BaseAgentRunner(AppRunner):
         self.memory = memory
         self.history_prompt_messages = self.organize_agent_history(prompt_messages=prompt_messages or [])
         self.model_instance = model_instance
+        self.origin_prompt_messages = prompt_messages
+        #print("BaseAgentRunner origin_prompt_messages:", self.origin_prompt_messages)
 
         # init callback
         self.agent_callback = DifyAgentCallbackHandler()
