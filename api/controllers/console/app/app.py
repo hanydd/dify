@@ -133,10 +133,10 @@ class CbrainCreateAppApi(Resource):
         parser.add_argument("icon_background", type=str, location="json")
 
         parser.add_argument("activityLabelId", type=str, required=True, location="json")
-        parser.add_argument("activityNodeId", type=str, required=True, location="json")
+        parser.add_argument("activityBasicId", type=str, required=True, location="json")
 
         parser.add_argument("processId", type=str, required=True, location="json")
-
+        parser.add_argument("executeFlowVersionId", type=str, required=True, location="json")
         parser.add_argument("modelType", type=str, required=True, location="json")
         parser.add_argument("procedureId", type=str, required=True, location="json")
         parser.add_argument("valueChainId", type=str, required=True, location="json")

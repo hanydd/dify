@@ -128,12 +128,13 @@ class AppService:
         # custom model config 自定义配置
         custom_config = AppCustomConfig()
         sipoc = False
-        if "activityNodeId" in args:
+        if "activityLabelId" in args:
             # 来源C大脑的app
             sipoc = True
             custom_config.activityLabelId = args["activityLabelId"]
-            custom_config.activityNodeId = args["activityNodeId"]
+            custom_config.activityBasicId = args["activityBasicId"]
             custom_config.processId = args["processId"]
+            custom_config.executeFlowVersionId = args["executeFlowVersionId"]
             custom_config.modelType = args["modelType"]
             custom_config.procedureId = args["procedureId"]
             custom_config.valueChainId = args["valueChainId"]
@@ -154,14 +155,6 @@ class AppService:
 
         db.session.add(app)
         db.session.flush()
-
-        # 新增：处理入口标识，自动创建c_brain标签
-        entry_point = args.get("entry_point")
-        if entry_point == "sipoc":
-            # 创建c_brain标签
-            c_brain_tag = TagService.get_or_create_tag("app", tenant_id, "c_brain")
-            # 绑定标签到新创建的App
-            TagService.bind_tag_to_target("app", tenant_id, c_brain_tag.id, app.id)
 
         if default_model_config:
             app_model_config = AppModelConfig(**default_model_config)
