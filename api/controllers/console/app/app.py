@@ -159,6 +159,28 @@ class CbrainCreateAppApi(Resource):
         return cbrain_response(app), 200
 
 
+class ListByActivityApi(Resource):
+    @marshal_with(get_cbrain_common_fields(app_simple_fields))
+    def post(self):
+        """根据活动ID查询Agent"""
+        parser = reqparse.RequestParser()
+        parser.add_argument("activityLabelId", type=str, required=True, location="json")
+        parser.add_argument("bindStatus", type=bool, required=False, location="json")
+        parser.add_argument("enable", type=bool, required=False, location="json")
+        args = parser.parse_args()
+
+        # # 从请求头获取C大脑用户和租户
+        # cbrain_tenant = request.headers.get("Environment")
+        # cbrain_token = request.headers.get("Authorization")
+        # # 查询dify中绑定的用户和租户
+        # login_status = CbrainLoginService.login(cbrain_token, cbrain_tenant, request)
+        # account = login_status.account
+
+        app = AppService.list_by_activity_id(args["activityLabelId"], args["bindStatus"], args["enable"])
+
+        return cbrain_response(app), 200
+
+
 class AppApi(Resource):
     @setup_required
     # @login_required
@@ -422,4 +444,5 @@ api.add_resource(AppSiteStatus, "/apps/<uuid:app_id>/site-enable")
 api.add_resource(AppApiStatus, "/apps/<uuid:app_id>/api-enable")
 api.add_resource(AppTraceApi, "/apps/<uuid:app_id>/trace")
 api.add_resource(CbrainCreateAppApi, "/apps/createFromActivity")
+api.add_resource(ListByActivityApi, "/apps/listByActivity")
 api.add_resource(AppSimpleIdListApi, "/apps/listDetails")

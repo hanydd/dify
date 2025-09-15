@@ -173,9 +173,13 @@ deleted_tool_fields = {
 }
 
 app_custom_config_fields = {
+    "upgradeStatus": fields.Boolean,
+    "bindStatus": fields.Boolean,
+    "enable": fields.Boolean,
     "activityLabelId": fields.String,
-    "activityNodeId": fields.String,
+    "activityBasicId": fields.String,
     "processId": fields.String,
+    "executeFlowVersionId": fields.String,
     "modelType": fields.String,
     "procedureId": fields.String,
     "valueChainId": fields.String,
@@ -265,6 +269,8 @@ app_simple_fields = {
     "icon_type": fields.String,
     "icon": fields.String,
     "icon_background": fields.String,
+    "icon_url": AppIconUrlField,
+    "custom_config": fields.Nested(app_custom_config_fields, attribute="custom_config", allow_null=True),
 }
 
 

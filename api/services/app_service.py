@@ -131,6 +131,9 @@ class AppService:
         if "activityLabelId" in args:
             # 来源C大脑的app
             sipoc = True
+            custom_config.upgradeStatus = False
+            custom_config.bindStatus = True
+            custom_config.enable = True
             custom_config.activityLabelId = args["activityLabelId"]
             custom_config.activityBasicId = args["activityBasicId"]
             custom_config.processId = args["processId"]
@@ -449,3 +452,14 @@ class AppService:
         if not site:
             raise ValueError(f"App with code {app_code} not found")
         return str(site.app_id)
+
+    @staticmethod
+    def list_by_activity_id(activity_label_id: str, bind_status: bool, enable: bool):
+        query = (db.session().query(App).join(AppCustomConfig, App.id == AppCustomConfig.app_id)
+                 .where(AppCustomConfig.activityLabelId == activity_label_id))
+        if bind_status is not None:
+            query = query.where(AppCustomConfig.bindStatus == bind_status)
+        if enable is not None:
+            query = query.where(AppCustomConfig.enable == enable)
+        apps: List[App] = query.all()
+        return apps
