@@ -314,10 +314,20 @@ class AppCustomConfig(Base):
     id: Mapped[str] = mapped_column(StringUUID, server_default=db.text("uuid_generate_v4()"))
     app_id: Mapped[str] = mapped_column(StringUUID)
 
-    # 过程模型配置
+    # 升版状态
+    upgradeStatus = mapped_column(db.Boolean, nullable=False, default=False)
+    # 绑定状态
+    bindStatus = mapped_column(db.Boolean, nullable=False, default=True)
+    # 启用状态
+    enable = mapped_column(db.Boolean, nullable=False, default=True)
+
+    # 绑定活动配置
     activityLabelId: Mapped[str] = mapped_column(db.String(255), nullable=True)
-    activityNodeId: Mapped[str] = mapped_column(db.String(255), nullable=True)
+    activityBasicId: Mapped[str] = mapped_column(db.String(255), nullable=True)
+
+    # 过程模型配置
     processId: Mapped[str] = mapped_column(db.String(255), nullable=True)
+    executeFlowVersionId: Mapped[str] = mapped_column(db.String(255), nullable=True)
     modelType: Mapped[str] = mapped_column(db.String(255), nullable=True)
     procedureId: Mapped[Optional[str]] = mapped_column(db.String(255), nullable=True)
     valueChainId = db.Column(db.String(255), nullable=True)
