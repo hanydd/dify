@@ -1,4 +1,4 @@
-import json
+import logging
 import logging
 import uuid
 from typing import cast
@@ -29,7 +29,6 @@ from services.app_dsl_service import AppDslService, ImportMode
 from services.app_service import AppService
 from services.enterprise.enterprise_service import EnterpriseService
 from services.feature_service import FeatureService
-from services.login_service import CbrainLoginService
 
 ALLOW_CREATE_APP_MODES = ["chat", "agent-chat", "advanced-chat", "workflow", "completion"]
 
@@ -150,8 +149,7 @@ class CbrainCreateAppApi(Resource):
         cbrain_tenant = request.headers.get("Environment")
         cbrain_token = request.headers.get("Authorization")
         # 查询dify中绑定的用户和租户
-        login_status = CbrainLoginService.login(cbrain_token, cbrain_tenant, request)
-        account = login_status.account
+        account = CbrainLoginService.login(cbrain_token, cbrain_tenant)
 
         app_service = AppService()
         app = app_service.create_app(account.current_tenant_id, args, account)
