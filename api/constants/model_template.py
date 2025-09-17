@@ -1,7 +1,7 @@
 import json
 from collections.abc import Mapping
 
-from api.models.enums import SceneType
+from models.enums import SceneType
 from models.model import AppMode
 
 default_app_templates: Mapping[AppMode, Mapping] = {
