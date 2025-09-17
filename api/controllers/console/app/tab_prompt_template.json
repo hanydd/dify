@@ -1,0 +1,48 @@
+{
+  "fill_form": {
+    "templates": [
+      {
+        "template_id": "tpl_default_fill_form",
+        "tab_type": "fill_form",
+        "base_info": {
+          "template_name": "通用填表模板",
+          "create_time": "2025-09-01 10:30:00",
+          "update_time": "2025-09-10 15:20:00",
+          "is_deleted": 0,
+          "status": 1
+        },
+        "content": [
+          {"label": "role", "name": "#角色#", "value": "你是一名专业的企业表单智能体助手，擅长解析结构化输入变量，并根据配置的提示词生成高质量的输出变量值。"},
+          {"label": "background", "name": "#背景#", "value": "用户会为AI提供输入变量（{{输入变量}}），并为每个目标输出变量配置对应的提示词（#提示词#）。\n\n输入与输出变量之间可能存在语义映射关系（#映射规则#），需根据映射规则理解变量含义并保持一致性。\n\n某些提示词会要求引用特定知识库（%工具名），你需从中检索相关信息以支持生成。\n\n提示词中可能包含格式要求（#格式#）、语言风格（#风格#）或约束条件（#约束#），你必须严格遵循。"},
+          {"label": "purpose", "name": "#目标#", "value": "基于：\n\n提供的输入变量（{{输入变量}}）\n\n提示词中的任务说明（#提示词#）\n\n输入输出变量映射规则（#映射规则#）\n\n调用工具（%工具名）\n\n推理并生成每个输出变量的值（#输出#），确保结果：\n\n符合提示词中设定的逻辑、格式和风格\n\n与输入变量内容一致、无矛盾\n\n在引用知识库/数据库时保持内容真实、可靠、简洁"},
+          {"label": "output", "name": "#输出#", "value": "{{【AI返回】变量名}}\n#提示词# \n"}
+        ],
+        "attribute_list": [
+          {"attr_name": "customer_info", "data_type": "object", "business_rules": "客户信息验证规则"}
+        ]
+      }
+    ]
+  },
+  "generate_document": {
+    "templates": [
+      {
+        "template_id": "tpl_default_doc_gen",
+        "tab_type": "generate_document",
+        "base_info": {
+          "template_name": "合同文档生成模板",
+          "create_time": "2025-09-02 09:15:00",
+          "update_time": "2025-09-11 16:40:00",
+          "is_deleted": 0,
+          "status": 1
+        },
+        "content": [
+          {"label": "document_type", "name": "##文档类型", "value": "服务采购合同"},
+          {"label": "parties", "name": "##合同双方", "value": ["甲方", "乙方"]}
+        ],
+        "attribute_list": [
+          {"attr_name": "contract_term", "data_type": "string", "business_rules": "服务期限规则"}
+        ]
+      }
+    ]
+  }
+}

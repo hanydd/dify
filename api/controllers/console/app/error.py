@@ -127,3 +127,8 @@ class InvokeRateLimitError(BaseHTTPException):
     error_code = "rate_limit_error"
     description = "Rate Limit Error"
     code = 429
+
+class PromptTemplateError(BaseHTTPException):
+    error_code = "prompt_template_error"
+    description = "Prompt Template Error"
+    code = 400

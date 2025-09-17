@@ -376,11 +376,23 @@ class SimplePromptTransform(PromptTransform):
 
 
         # 2. 生成final_pre_prompt
+        # 定义占位符
+        placeholder = "{{#pre_prompt#}}"
+
+        # 2. 生成final_pre_prompt
         if pre_prompt:
-            # 去除两端空行后拼接，避免多余空白
-            final_pre_prompt = f"{pre_prompt.rstrip()}\n\n{base_template.lstrip()}"
+            # 若pre_prompt存在，用其内容（处理空白后）替换占位符
+            replacement = pre_prompt.rstrip()
+            final_pre_prompt = base_template.replace(placeholder, replacement)
         else:
-            final_pre_prompt = base_template
+            # 若pre_prompt不存在，将占位符替换为空字符串
+            final_pre_prompt = base_template.replace(placeholder, "")
+
+        # if pre_prompt:
+        #     # 去除两端空行后拼接，避免多余空白
+        #     final_pre_prompt = f"{pre_prompt.rstrip()}\n\n{base_template.lstrip()}"
+        # else:
+        #     final_pre_prompt = base_template
         #print("final_pre_prompt:", final_pre_prompt)
 
         # 3. 获取提示词规则（修复场景类型参数传递）
