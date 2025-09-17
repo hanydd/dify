@@ -463,3 +463,17 @@ class AppService:
             query = query.where(AppCustomConfig.enable == enable)
         apps: List[App] = query.all()
         return apps
+
+    @staticmethod
+    def update_custom_config(app_ids: List[str], bind_status: bool, enable: bool) -> None:
+        """
+        更新应用自定义配置(编辑启用状态、解绑/绑定状态)
+        """
+        update_query = (db.session().query(AppCustomConfig).where(AppCustomConfig.app_id.in_(app_ids)))
+        update_values = {}
+        if bind_status is not None:
+            update_values.update({AppCustomConfig.bindStatus: bind_status})
+        if enable is not None:
+            update_values.update({AppCustomConfig.enable: enable})
+        update_query.update(update_values)
+        db.session.commit()

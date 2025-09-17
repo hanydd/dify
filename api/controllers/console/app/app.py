@@ -420,6 +420,26 @@ class AppSimpleIdListApi(Resource):
         return cbrain_response(apps)
 
 
+class UpdateCustomConfigApi(Resource):
+    @login_required
+    def post(self):
+        """
+        更新应用自定义配置
+        {
+            "agentId": [ "id1", "id2" ],
+            "bindStatus": true/false, // 绑定状态，无需更改可以不传，或者null
+            "enable": true/false,     // 启用状态，无需更改可以不传，或者null
+        }
+        """
+        parser = reqparse.RequestParser()
+        parser.add_argument("agentId", type=list, required=True, location="json")
+        parser.add_argument("bindStatus", type=bool, required=False, location="json")
+        parser.add_argument("enable", type=bool, required=False, location="json")
+        args = parser.parse_args()
+        AppService().update_custom_config(args["agentId"], args["bindStatus"], args["enable"])
+        return cbrain_response(None)
+
+
 api.add_resource(AppListApi, "/apps")
 api.add_resource(AppApi, "/apps/<uuid:app_id>")
 api.add_resource(AppCopyApi, "/apps/<uuid:app_id>/copy")
@@ -431,4 +451,5 @@ api.add_resource(AppApiStatus, "/apps/<uuid:app_id>/api-enable")
 api.add_resource(AppTraceApi, "/apps/<uuid:app_id>/trace")
 api.add_resource(CbrainCreateAppApi, "/apps/createFromActivity")
 api.add_resource(ListByActivityApi, "/apps/listByActivity")
+api.add_resource(UpdateCustomConfigApi, "/apps/updateCustomConfig")
 api.add_resource(AppSimpleIdListApi, "/apps/listDetails")
