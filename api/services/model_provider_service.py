@@ -1,10 +1,12 @@
 import logging
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from core.entities.model_entities import ModelStatus, ModelWithProviderEntity, ProviderModelWithStatusEntity
 from core.model_runtime.entities.model_entities import ModelType, ParameterRule
 from core.model_runtime.model_providers.model_provider_factory import ModelProviderFactory
 from core.provider_manager import ProviderManager
+from models import db
+from models.provider import ProviderModelDescription
 from models.provider import ProviderType
 from services.entities.model_provider_entities import (
     CustomConfigurationResponse,
@@ -14,7 +16,7 @@ from services.entities.model_provider_entities import (
     ProviderResponse,
     ProviderWithModelsResponse,
     SimpleProviderEntityResponse,
-    SystemConfigurationResponse,
+    SystemConfigurationResponse, ProviderModelDescriptionResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -479,3 +481,26 @@ class ModelProviderService:
 
         # Enable model
         provider_configuration.disable_model(model=model, model_type=ModelType.value_of(model_type))
+
+    def get_model_provider_description(self, model_id: str) -> dict[str, Any] | None:
+        """
+        get model provider description.
+
+        :param model_id: model id
+        :return:
+        """
+        try:
+            stmt = db.select(ProviderModelDescription).where(
+                ProviderModelDescription.model_id == model_id
+            )
+            model_provider_instance = db.session.execute(stmt).scalar()
+
+            if model_provider_instance:
+                return {
+                    'provider': model_provider_instance.provider,
+                    'description': model_provider_instance.description,
+                }
+            return None
+        except Exception as e:
+            print(e)
+            return None

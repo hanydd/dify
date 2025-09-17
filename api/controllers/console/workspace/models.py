@@ -10,6 +10,7 @@ from core.model_runtime.entities.model_entities import ModelType
 from core.model_runtime.errors.validate import CredentialsValidateFailedError
 from core.model_runtime.utils.encoders import jsonable_encoder
 from libs.login import login_required
+from models.provider import ProviderModelDescription
 from services.model_load_balancing_service import ModelLoadBalancingService
 from services.model_provider_service import ModelProviderService
 
@@ -199,6 +200,19 @@ class ModelProviderModelApi(Resource):
         return {"result": "success"}, 204
 
 
+class ModelProviderDescriptionApi(Resource):
+    @setup_required
+    @login_required
+    @account_initialization_required
+    def get(self, provider: str):
+        parser = reqparse.RequestParser()
+        parser.add_argument("model_id", type=str, required=True, nullable=False, location="args")
+        model_id = provider
+        model_provider_service = ModelProviderService()
+        provider_model_description = model_provider_service.get_model_provider_description(model_id)
+        return provider_model_description
+
+
 class ModelProviderModelCredentialApi(Resource):
     @setup_required
     @login_required
@@ -366,6 +380,7 @@ class ModelProviderAvailableModelApi(Resource):
 
 
 api.add_resource(ModelProviderModelApi, "/workspaces/current/model-providers/<path:provider>/models")
+api.add_resource(ModelProviderDescriptionApi, "/workspaces/current/model-providers/<path:provider>/models/description")
 api.add_resource(
     ModelProviderModelEnableApi,
     "/workspaces/current/model-providers/<path:provider>/models/enable",

@@ -223,3 +223,18 @@ class LoadBalancingModelConfig(Base):
     enabled: Mapped[bool] = mapped_column(db.Boolean, nullable=False, server_default=text("true"))
     created_at: Mapped[datetime] = mapped_column(db.DateTime, nullable=False, server_default=func.current_timestamp())
     updated_at: Mapped[datetime] = mapped_column(db.DateTime, nullable=False, server_default=func.current_timestamp())
+
+
+class ProviderModelDescription(Base):
+    """
+    Provider model descriptions.
+    """
+
+    query = None
+    __tablename__ = "provider_model_descriptions"
+    __table_args__ = (
+        db.PrimaryKeyConstraint("model_id", name="provider_model_description_pkey"),
+    )
+
+    model_id: Mapped[str] = mapped_column(db.String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(db.Text, nullable=True)

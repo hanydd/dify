@@ -167,3 +167,11 @@ class ModelWithProviderEntityResponse(ProviderModelWithStatusEntity):
         dump_model = model.model_dump()
         dump_model["provider"]["tenant_id"] = tenant_id
         super().__init__(**dump_model)
+
+
+class ProviderModelDescriptionResponse(BaseModel):
+    """
+    Model class for provider model description response.
+    """
+    model_id: str
+    description: str
