@@ -119,7 +119,11 @@ class App(Base):
     def app_model_config(self):
         if self.app_model_config_id:
             model_config = db.session.query(AppModelConfig).where(AppModelConfig.id == self.app_model_config_id).first()
-            model_config.configs.put("scene_type", self.scene_type)
+            if model_config:
+                if not model_config.configs and self.scene_type:
+                    model_config.configs = {}
+                if model_config.configs:
+                    model_config.configs["scene_type"] = self.scene_type
             return model_config
         return None
 

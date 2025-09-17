@@ -95,6 +95,7 @@ class ServicePropertyData(BaseModel):
     value: Optional[Any] = None
     unit: Optional[str] = None
     options: Optional[List[Any]] = None
+    attributePrompt: Optional[str] = None  # 属性提示词
 
 class NodeObject(BaseModel):
     """NodeObject类"""
@@ -118,4 +119,5 @@ class SipocModelConfig(BaseModel):
     modelGenerate: Optional[IORCConfig] = None  # dify的生成变量
     modelContextKV: Optional[Dict[str, Any]] = None  # 给dify的输入变量转化为kv
     modelGenerateKV: Optional[Dict[str, Any]] = None  # dify的生成变量转化为kv
+
 
