@@ -1,6 +1,7 @@
 import json
 from collections.abc import Mapping
 
+from api.models.enums import SceneType
 from models.model import AppMode
 
 default_app_templates: Mapping[AppMode, Mapping] = {
@@ -69,6 +70,7 @@ default_app_templates: Mapping[AppMode, Mapping] = {
     AppMode.AGENT_CHAT: {
         "app": {
             "mode": AppMode.AGENT_CHAT.value,
+            "scene_type": SceneType.FILL_FORM,
             "enable_site": True,
             "enable_api": True,
         },
