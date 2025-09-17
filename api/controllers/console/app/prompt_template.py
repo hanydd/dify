@@ -1,109 +1,74 @@
 from flask_restful import Resource, reqparse
 
 from controllers.console import api
+from controllers.console.app.error import PromptTemplateError
 from controllers.console.app.wraps import get_app_model
 from controllers.console.wraps import account_initialization_required, setup_required
 from libs.login import login_required
 from models.model import AppMode
-from flask import request
 import uuid
-from datetime import datetime
 import json
 import os
 
-
 class QueryByTabApi(Resource):
     @setup_required
-    @login_required
-    @account_initialization_required
-    @get_app_model(mode=[AppMode.AGENT_CHAT])
-    def get(self, app_model):
-        """根据tab类型和状态查询模板"""
+    def get(self):
+        """按tab_type查询模板, 对应的模版内容"""
+        # 1. 解析请求参数
         parser = reqparse.RequestParser()
-        # 输入参数：tab_type（必填）、status（可选，默认1）
-        parser.add_argument("tab_type", type=str, required=True,
-                           location="args", help="Tab类型为必填项")
-        parser.add_argument("status", type=int, choices=(1, 2, 3),
-                           default=1, location="args", help="状态值必须为1、2或3")
+        parser.add_argument(
+            "tab_type",
+            type=str,
+            required=True,
+            location="args",
+            help="tab类型为字符串类型，用于指定模板分类"
+        )
+        parser.add_argument(
+            "status",
+            type=int,
+            default=1,
+            location="args",
+            help="提示词模版的状态，当前默认为1"
+        )
         args = parser.parse_args()
+        target_tab = args["tab_type"]
+        request_status = args["status"]
 
-        tab_type = args["tab_type"]
-        status = args["status"]
-
-        # 模板文件路径（示例：按tab_type命名文件，如 fill_form_template.json）
-        template_file = f"templates/{tab_type}_template.json"
+        # 2. 读取模板文件
+        current_code_path = os.path.abspath(__file__)
+        current_code_dir = os.path.dirname(current_code_path)
+        template_file = os.path.join(current_code_dir, "tab_prompt_template.json")
         if not os.path.exists(template_file):
-            return {
-                "code": 404,
-                "message": f"未找到{tab_type}对应的模板文件",
-                "data": None
-            }, 404
+            raise PromptTemplateError(f"模板文件不存在：{template_file}")
 
         try:
-            # 读取模板文件内容
             with open(template_file, "r", encoding="utf-8") as f:
-                template_data = json.load(f)
+                all_templates = json.load(f)  # 整个文件内容
+        except json.JSONDecodeError:
+            raise PromptTemplateError("模板文件格式错误，无法解析JSON")
         except Exception as e:
-            return {
-                "code": 500,
-                "message": f"读取模板文件失败：{str(e)}",
-                "data": None
-            }, 500
+            raise PromptTemplateError(f"读取模板文件失败：{str(e)}")
 
-        # 生成唯一模板ID、构造基础信息
-        template_id = str(uuid.uuid4())
-        create_time = "2025-09-01 10:30:00"
-        update_time = "2025-09-10 15:20:00"
+        # 3. 提取目标tab的模板（直接通过顶层键访问）
+        if target_tab not in all_templates:
+            raise PromptTemplateError(f"模板文件中未定义{target_tab}类型的模板")
 
-        # 从模板文件中提取content和attribute_list（文件需包含这两个字段）
-        content = template_data.get("content", [
-            {
-                "label": "role",
-                "name": "##角色",
-                "value": ""
-            },
-            {
-                "label": "task",
-                "name": "##任务",
-                "value": ""
-            },
-            {
-                "label": "output",
-                "name": "##输出",
-                "value": ""
-            }
-        ])
-        attribute_list = template_data.get("attribute_list", [
-            {
-                "attr_name": "input",
-                "data_type": "string",
-                "business_rules": "输入内容的业务规则说明"
-            },
-            {
-                "attr_name": "output",
-                "data_type": "string",
-                "business_rules": "输出内容的业务规则说明"
-            }
-        ])
+        # 获取该tab下的templates数组（默认空数组避免报错）
+        target_templates = all_templates[target_tab].get("templates", [])
+        if not target_templates:
+            raise PromptTemplateError(f"{target_tab}类型下无可用模板")
 
-        # 构造最终响应结构
+        # 4. 动态处理模板字段
+        for tpl in target_templates:
+            # 生成唯一template_id
+            tpl["template_id"] = f"tpl_{uuid.uuid4().hex[:12]}"
+            # 确保tab_type与请求一致
+            tpl["tab_type"] = target_tab
+
+        # 5. 按新结构返回
         return {
-            "data": {
-                "templates": [
-                    {
-                        "template_id": template_id,
-                        "tab_type": tab_type,
-                        "base_info": {
-                            "template_name": "填表模板",
-                            "status": status,
-                            "create_time": create_time,
-                            "update_time": update_time,
-                            "is_deleted": 0
-                        },
-                        "content": content,
-                        "attribute_list": attribute_list
-                    }
-                ]
+            target_tab: {  # 顶层键为tab_type
+                "templates": target_templates
             }
         }
 
