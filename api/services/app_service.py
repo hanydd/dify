@@ -50,6 +50,8 @@ class AppService:
 
         if args.get("is_created_by_me", False):
             filters.append(App.created_by == user_id)
+        if args.get("scene_type"):
+            filters.append(App.scene_type == args["scene_type"])
         if args.get("name"):
             name = args["name"][:30]
             filters.append(App.name.ilike(f"%{name}%"))
@@ -147,6 +149,7 @@ class AppService:
         app.name = args["name"]
         app.description = args.get("description", "")
         app.mode = args["mode"]
+        app.scene_type = args["scene_type"]
         app.icon_type = args.get("icon_type", "emoji")
         app.icon = args["icon"]
         app.icon_background = args["icon_background"]
@@ -250,6 +253,7 @@ class AppService:
     class ArgsDict(TypedDict):
         name: str
         description: str
+        scene_type: str
         icon_type: str
         icon: str
         icon_background: str
@@ -265,6 +269,7 @@ class AppService:
         """
         app.name = args["name"]
         app.description = args["description"]
+        app.scene_type = args["scene_type"]
         app.icon_type = args["icon_type"]
         app.icon = args["icon"]
         app.icon_background = args["icon_background"]

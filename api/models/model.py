@@ -77,6 +77,7 @@ class App(Base):
     name: Mapped[str] = mapped_column(db.String(255))
     description: Mapped[str] = mapped_column(db.Text, server_default=db.text("''::character varying"))
     mode: Mapped[str] = mapped_column(db.String(255))
+    scene_type: Mapped[str] = mapped_column(db.String(32), nullable=True)
     icon_type: Mapped[Optional[str]] = mapped_column(db.String(255))  # image, emoji
     icon = db.Column(db.String(255))
     icon_background: Mapped[Optional[str]] = mapped_column(db.String(255))
@@ -117,8 +118,9 @@ class App(Base):
     @property
     def app_model_config(self):
         if self.app_model_config_id:
-            return db.session.query(AppModelConfig).where(AppModelConfig.id == self.app_model_config_id).first()
-
+            model_config = db.session.query(AppModelConfig).where(AppModelConfig.id == self.app_model_config_id).first()
+            model_config.configs.put("scene_type", self.scene_type)
+            return model_config
         return None
 
     @property

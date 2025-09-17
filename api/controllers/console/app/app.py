@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from werkzeug.exceptions import BadRequest, Forbidden, abort
 
+from api.models.enums import SceneType
 from controllers.console import api
 from controllers.console.app.wraps import get_app_model
 from controllers.console.wraps import (
@@ -27,7 +28,6 @@ from libs.login import login_required
 from models import Account, App
 from services.app_dsl_service import AppDslService, ImportMode
 from services.app_service import AppService
-from services.cbrain_service import CbrainLoginService
 from services.enterprise.enterprise_service import EnterpriseService
 from services.feature_service import FeatureService
 
@@ -50,7 +50,7 @@ class AppListApi(Resource):
 
         parser = reqparse.RequestParser()
         parser.add_argument("page", type=inputs.int_range(1, 99999), required=False, default=1, location="args")
-        parser.add_argument("limit", type=inputs.int_range(1, 100), required=False, default=20, location="args")
+        parser.add_argument("limit", type=inputs.int_range(1, 10000), required=False, default=10000, location="args")
         parser.add_argument(
             "mode",
             type=str,
@@ -67,6 +67,8 @@ class AppListApi(Resource):
             location="args",
             required=False,
         )
+        parser.add_argument("scene_type", type=str, location="args", required=False)
+
         parser.add_argument("name", type=str, location="args", required=False)
         parser.add_argument("tag_ids", type=uuid_list, location="args", required=False)
         parser.add_argument("is_created_by_me", type=inputs.boolean, location="args", required=False)
@@ -102,6 +104,7 @@ class AppListApi(Resource):
         parser.add_argument("name", type=str, required=True, location="json")
         parser.add_argument("description", type=str, location="json")
         parser.add_argument("mode", type=str, choices=ALLOW_CREATE_APP_MODES, location="json")
+        parser.add_argument("scene_type", type=str, location="json")
         parser.add_argument("icon_type", type=str, location="json")
         parser.add_argument("icon", type=str, location="json")
         parser.add_argument("icon_background", type=str, location="json")
@@ -128,6 +131,7 @@ class CbrainCreateAppApi(Resource):
         parser.add_argument("name", type=str, required=True, location="json")
         parser.add_argument("description", type=str, location="json")
         parser.add_argument("mode", type=str, choices=ALLOW_CREATE_APP_MODES, location="json")
+        parser.add_argument("scene_type", type=str, location="json")
         parser.add_argument("icon_type", type=str, location="json")
         parser.add_argument("icon", type=str, location="json")
         parser.add_argument("icon_background", type=str, location="json")
@@ -169,7 +173,7 @@ class ListByActivityApi(Resource):
 
 class AppApi(Resource):
     @setup_required
-    # @login_required
+    @login_required
     @account_initialization_required
     @enterprise_license_required
     @get_app_model
@@ -201,6 +205,7 @@ class AppApi(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument("name", type=str, required=True, nullable=False, location="json")
         parser.add_argument("description", type=str, location="json")
+        parser.add_argument("scene_type", type=str, location="json")
         parser.add_argument("icon_type", type=str, location="json")
         parser.add_argument("icon", type=str, location="json")
         parser.add_argument("icon_background", type=str, location="json")
