@@ -211,6 +211,7 @@ input:##node##supplier.##prop##bid_documents = "沈飞民机投标文件.pdf"
 待完成的文档：{{#output_results#}}
 信息数据来源:
 {{#input_key_values#}}
+填文档提示信息：{{#pre_prompt#}}
 文档结果(以markdown形式输出）/no think：
 """
 
