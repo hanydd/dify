@@ -204,10 +204,11 @@ class ModelProviderDescriptionApi(Resource):
     @setup_required
     @login_required
     @account_initialization_required
-    def get(self, provider: str):
+    def get(self):
         parser = reqparse.RequestParser()
         parser.add_argument("model_id", type=str, required=True, nullable=False, location="args")
-        model_id = provider
+        args = parser.parse_args()
+        model_id = args["model_id"]
         model_provider_service = ModelProviderService()
         provider_model_description = model_provider_service.get_model_provider_description(model_id)
         return provider_model_description
@@ -380,7 +381,7 @@ class ModelProviderAvailableModelApi(Resource):
 
 
 api.add_resource(ModelProviderModelApi, "/workspaces/current/model-providers/<path:provider>/models")
-api.add_resource(ModelProviderDescriptionApi, "/workspaces/current/model-providers/<path:provider>/models/description")
+api.add_resource(ModelProviderDescriptionApi, "/workspaces/current/model-providers/models/description")
 api.add_resource(
     ModelProviderModelEnableApi,
     "/workspaces/current/model-providers/<path:provider>/models/enable",

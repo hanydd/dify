@@ -494,10 +494,9 @@ class ModelProviderService:
                 ProviderModelDescription.model_id == model_id
             )
             model_provider_instance = db.session.execute(stmt).scalar()
-
             if model_provider_instance:
                 return {
-                    'provider': model_provider_instance.provider,
+                    'model_id': model_provider_instance.model_id,
                     'description': model_provider_instance.description,
                 }
             return None

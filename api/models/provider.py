@@ -230,7 +230,6 @@ class ProviderModelDescription(Base):
     Provider model descriptions.
     """
 
-    query = None
     __tablename__ = "provider_model_descriptions"
     __table_args__ = (
         db.PrimaryKeyConstraint("model_id", name="provider_model_description_pkey"),
