@@ -309,7 +309,9 @@ class App(Base):
 class AppCustomConfig(Base):
     __tablename__ = "app_custom_config"
     __table_args__ = (db.PrimaryKeyConstraint("id", name="app_custom_config_pkey"),
-                      db.Index("config_app_id_idx", "app_id"))
+                      db.Index("config_app_id_idx", "app_id"),
+                      db.Index("config_valueChainId_idx", "valueChainId"),
+                      db.Index("config_activityLabelId_idx", "activityLabelId"))
 
     id: Mapped[str] = mapped_column(StringUUID, server_default=db.text("uuid_generate_v4()"))
     app_id: Mapped[str] = mapped_column(StringUUID)

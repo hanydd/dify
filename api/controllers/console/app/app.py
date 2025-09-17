@@ -27,6 +27,7 @@ from libs.login import login_required
 from models import Account, App
 from services.app_dsl_service import AppDslService, ImportMode
 from services.app_service import AppService
+from services.cbrain_service import CbrainLoginService
 from services.enterprise.enterprise_service import EnterpriseService
 from services.feature_service import FeatureService
 
@@ -145,16 +146,10 @@ class CbrainCreateAppApi(Resource):
         if "mode" not in args or args["mode"] is None:
             args["mode"] = "agent-chat"
 
-        # 从请求头获取C大脑用户和租户
-        cbrain_tenant = request.headers.get("Environment")
-        cbrain_token = request.headers.get("Authorization")
-        # 查询dify中绑定的用户和租户
-        account = CbrainLoginService.login(cbrain_token, cbrain_tenant)
-
         app_service = AppService()
-        app = app_service.create_app(account.current_tenant_id, args, account)
+        app = app_service.create_app(current_user.current_tenant_id, args, current_user)
 
-        return cbrain_response(app), 200
+        return cbrain_response(app)
 
 
 class ListByActivityApi(Resource):
@@ -167,16 +162,9 @@ class ListByActivityApi(Resource):
         parser.add_argument("enable", type=bool, required=False, location="json")
         args = parser.parse_args()
 
-        # # 从请求头获取C大脑用户和租户
-        # cbrain_tenant = request.headers.get("Environment")
-        # cbrain_token = request.headers.get("Authorization")
-        # # 查询dify中绑定的用户和租户
-        # login_status = CbrainLoginService.login(cbrain_token, cbrain_tenant, request)
-        # account = login_status.account
-
         app = AppService.list_by_activity_id(args["activityLabelId"], args["bindStatus"], args["enable"])
 
-        return cbrain_response(app), 200
+        return cbrain_response(app)
 
 
 class AppApi(Resource):
@@ -429,7 +417,7 @@ class AppSimpleIdListApi(Resource):
         app_service = AppService()
         apps = app_service.get_app_by_ids(args["ids"])
 
-        return cbrain_response(apps), 200
+        return cbrain_response(apps)
 
 
 api.add_resource(AppListApi, "/apps")
