@@ -43,7 +43,7 @@ api.add_resource(AppImportConfirmApi, "/apps/imports/<string:import_id>/confirm"
 api.add_resource(AppImportCheckDependenciesApi, "/apps/imports/<string:app_id>/check-dependencies")
 
 # Import other controllers
-from . import admin, apikey, extension, feature, ping, setup, version
+from . import admin, apikey, extension, feature, ping, setup, version, cbrain
 
 # Import app controllers
 from .app import (
@@ -141,7 +141,6 @@ api.add_resource(
     "/installed-apps/<uuid:installed_app_id>/conversations/<uuid:c_id>/unpin",
     endpoint="installed_app_conversation_unpin",
 )
-
 
 # Explore Message
 api.add_resource(MessageListApi, "/installed-apps/<uuid:installed_app_id>/messages", endpoint="installed_app_messages")
