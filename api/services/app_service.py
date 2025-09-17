@@ -48,7 +48,7 @@ class AppService:
         elif args["mode"] == "agent-chat":
             filters.append(App.mode == AppMode.AGENT_CHAT.value)
 
-        if args.get("is_created_by_me", False):
+        if args.get("is_created_by_me", True):
             filters.append(App.created_by == user_id)
         if args.get("name"):
             name = args["name"][:30]

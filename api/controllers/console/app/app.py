@@ -71,6 +71,7 @@ class AppListApi(Resource):
         parser.add_argument("is_created_by_me", type=inputs.boolean, location="args", required=False)
 
         args = parser.parse_args()
+        args["is_created_by_me"] = True
 
         # get app list
         app_service = AppService()
