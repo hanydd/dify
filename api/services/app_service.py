@@ -48,8 +48,10 @@ class AppService:
         elif args["mode"] == "agent-chat":
             filters.append(App.mode == AppMode.AGENT_CHAT.value)
 
-        if args.get("is_created_by_me", False):
+        if args.get("is_created_by_me", True):
             filters.append(App.created_by == user_id)
+        if args.get("scene_type"):
+            filters.append(App.scene_type == args["scene_type"])
         if args.get("name"):
             name = args["name"][:30]
             filters.append(App.name.ilike(f"%{name}%"))
@@ -147,6 +149,7 @@ class AppService:
         app.name = args["name"]
         app.description = args.get("description", "")
         app.mode = args["mode"]
+        app.scene_type = args["scene_type"]
         app.icon_type = args.get("icon_type", "emoji")
         app.icon = args["icon"]
         app.icon_background = args["icon_background"]
@@ -250,6 +253,7 @@ class AppService:
     class ArgsDict(TypedDict):
         name: str
         description: str
+        scene_type: str
         icon_type: str
         icon: str
         icon_background: str
@@ -265,6 +269,7 @@ class AppService:
         """
         app.name = args["name"]
         app.description = args["description"]
+        app.scene_type = args["scene_type"]
         app.icon_type = args["icon_type"]
         app.icon = args["icon"]
         app.icon_background = args["icon_background"]
@@ -463,3 +468,17 @@ class AppService:
             query = query.where(AppCustomConfig.enable == enable)
         apps: List[App] = query.all()
         return apps
+
+    @staticmethod
+    def update_custom_config(app_ids: List[str], bind_status: bool, enable: bool) -> None:
+        """
+        更新应用自定义配置(编辑启用状态、解绑/绑定状态)
+        """
+        update_query = (db.session().query(AppCustomConfig).where(AppCustomConfig.app_id.in_(app_ids)))
+        update_values = {}
+        if bind_status is not None:
+            update_values.update({AppCustomConfig.bindStatus: bind_status})
+        if enable is not None:
+            update_values.update({AppCustomConfig.enable: enable})
+        update_query.update(update_values)
+        db.session.commit()

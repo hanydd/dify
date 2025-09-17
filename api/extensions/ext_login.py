@@ -12,6 +12,7 @@ from libs.passport import PassportService
 from models.account import Account, Tenant, TenantAccountJoin
 from models.model import AppMCPServer, EndUser
 from services.account_service import AccountService
+from services.cbrain_service import CbrainLoginService
 
 login_manager = flask_login.LoginManager()
 
@@ -55,16 +56,19 @@ def load_user_from_request(request_from_flask_login):
     if request.blueprint in {"console", "inner_api"}:
         if not auth_token:
             raise Unauthorized("Invalid Authorization token.")
+        if "Environment" in request.headers and "currentuserid" in request.headers:
+            # C大脑登录
+            account = CbrainLoginService.login(token=request.headers.get("Authorization"),
+                                               environment=request.headers.get("Environment"),
+                                               current_user_id=request.headers.get("currentuserid"))
+            return account
         decoded = PassportService().verify(auth_token)
         user_id = decoded.get("user_id")
         source = decoded.get("token_source")
-        if source:
-            raise Unauthorized("Invalid Authorization token.")
-        if not user_id:
-            raise Unauthorized("Invalid Authorization token.")
+        if not source or user_id:
+            logged_in_account = AccountService.load_logged_in_account(account_id=user_id)
+            return logged_in_account
 
-        logged_in_account = AccountService.load_logged_in_account(account_id=user_id)
-        return logged_in_account
     elif request.blueprint == "web":
         decoded = PassportService().verify(auth_token)
         end_user_id = decoded.get("end_user_id")

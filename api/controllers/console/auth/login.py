@@ -24,7 +24,6 @@ from controllers.console.error import (
     WorkspacesLimitExceeded,
 )
 from controllers.console.wraps import email_password_login_enabled, setup_required
-from events.tenant_event import tenant_was_created
 from libs.helper import email, extract_remote_ip
 from libs.password import valid_password
 from models.account import Account
@@ -33,7 +32,6 @@ from services.billing_service import BillingService
 from services.errors.account import AccountRegisterError
 from services.errors.workspace import WorkSpaceNotAllowedCreateError, WorkspacesLimitExceededError
 from services.feature_service import FeatureService
-from services.login_service import CbrainLoginService
 
 
 class LoginApi(Resource):
@@ -242,24 +240,9 @@ class RefreshTokenApi(Resource):
             return {"result": "fail", "data": str(e)}, 401
 
 
-class CbrainLoginApi(Resource):
-    def post(self):
-        parser = reqparse.RequestParser()
-        parser.add_argument("token", type=str, required=True, location="json")
-        parser.add_argument("environment", type=str, required=True, location="json")
-        args = parser.parse_args()
-
-        try:
-            new_token_pair = CbrainLoginService.login(args["token"], args["environment"], request).token_pair
-            return {"success": True, "code": 200, "msg": "", "data": new_token_pair.model_dump()}
-        except Exception as e:
-            return {"success": True, "code": 200, "msg": str(e)}, 401
-
-
 api.add_resource(LoginApi, "/login")
 api.add_resource(LogoutApi, "/logout")
 api.add_resource(EmailCodeLoginSendEmailApi, "/email-code-login")
 api.add_resource(EmailCodeLoginApi, "/email-code-login/validity")
 api.add_resource(ResetPasswordSendEmailApi, "/reset-password")
 api.add_resource(RefreshTokenApi, "/refresh-token")
-api.add_resource(CbrainLoginApi, "/cbrain_login")

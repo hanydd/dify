@@ -1,4 +1,4 @@
-import json
+import logging
 import logging
 import uuid
 from typing import cast
@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from werkzeug.exceptions import BadRequest, Forbidden, abort
 
+from api.models.enums import SceneType
 from controllers.console import api
 from controllers.console.app.wraps import get_app_model
 from controllers.console.wraps import (
@@ -29,7 +30,6 @@ from services.app_dsl_service import AppDslService, ImportMode
 from services.app_service import AppService
 from services.enterprise.enterprise_service import EnterpriseService
 from services.feature_service import FeatureService
-from services.login_service import CbrainLoginService
 
 ALLOW_CREATE_APP_MODES = ["chat", "agent-chat", "advanced-chat", "workflow", "completion"]
 
@@ -50,7 +50,7 @@ class AppListApi(Resource):
 
         parser = reqparse.RequestParser()
         parser.add_argument("page", type=inputs.int_range(1, 99999), required=False, default=1, location="args")
-        parser.add_argument("limit", type=inputs.int_range(1, 100), required=False, default=20, location="args")
+        parser.add_argument("limit", type=inputs.int_range(1, 10000), required=False, default=10000, location="args")
         parser.add_argument(
             "mode",
             type=str,
@@ -67,11 +67,14 @@ class AppListApi(Resource):
             location="args",
             required=False,
         )
+        parser.add_argument("scene_type", type=str, location="args", required=False)
+
         parser.add_argument("name", type=str, location="args", required=False)
         parser.add_argument("tag_ids", type=uuid_list, location="args", required=False)
         parser.add_argument("is_created_by_me", type=inputs.boolean, location="args", required=False)
 
         args = parser.parse_args()
+        args["is_created_by_me"] = True
 
         # get app list
         app_service = AppService()
@@ -102,6 +105,7 @@ class AppListApi(Resource):
         parser.add_argument("name", type=str, required=True, location="json")
         parser.add_argument("description", type=str, location="json")
         parser.add_argument("mode", type=str, choices=ALLOW_CREATE_APP_MODES, location="json")
+        parser.add_argument("scene_type", type=str, location="json")
         parser.add_argument("icon_type", type=str, location="json")
         parser.add_argument("icon", type=str, location="json")
         parser.add_argument("icon_background", type=str, location="json")
@@ -128,6 +132,7 @@ class CbrainCreateAppApi(Resource):
         parser.add_argument("name", type=str, required=True, location="json")
         parser.add_argument("description", type=str, location="json")
         parser.add_argument("mode", type=str, choices=ALLOW_CREATE_APP_MODES, location="json")
+        parser.add_argument("scene_type", type=str, location="json")
         parser.add_argument("icon_type", type=str, location="json")
         parser.add_argument("icon", type=str, location="json")
         parser.add_argument("icon_background", type=str, location="json")
@@ -146,17 +151,10 @@ class CbrainCreateAppApi(Resource):
         if "mode" not in args or args["mode"] is None:
             args["mode"] = "agent-chat"
 
-        # 从请求头获取C大脑用户和租户
-        cbrain_tenant = request.headers.get("Environment")
-        cbrain_token = request.headers.get("Authorization")
-        # 查询dify中绑定的用户和租户
-        login_status = CbrainLoginService.login(cbrain_token, cbrain_tenant, request)
-        account = login_status.account
-
         app_service = AppService()
-        app = app_service.create_app(account.current_tenant_id, args, account)
+        app = app_service.create_app(current_user.current_tenant_id, args, current_user)
 
-        return cbrain_response(app), 200
+        return cbrain_response(app)
 
 
 class ListByActivityApi(Resource):
@@ -169,21 +167,14 @@ class ListByActivityApi(Resource):
         parser.add_argument("enable", type=bool, required=False, location="json")
         args = parser.parse_args()
 
-        # # 从请求头获取C大脑用户和租户
-        # cbrain_tenant = request.headers.get("Environment")
-        # cbrain_token = request.headers.get("Authorization")
-        # # 查询dify中绑定的用户和租户
-        # login_status = CbrainLoginService.login(cbrain_token, cbrain_tenant, request)
-        # account = login_status.account
-
         app = AppService.list_by_activity_id(args["activityLabelId"], args["bindStatus"], args["enable"])
 
-        return cbrain_response(app), 200
+        return cbrain_response(app)
 
 
 class AppApi(Resource):
     @setup_required
-    # @login_required
+    @login_required
     @account_initialization_required
     @enterprise_license_required
     @get_app_model
@@ -215,6 +206,7 @@ class AppApi(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument("name", type=str, required=True, nullable=False, location="json")
         parser.add_argument("description", type=str, location="json")
+        parser.add_argument("scene_type", type=str, location="json")
         parser.add_argument("icon_type", type=str, location="json")
         parser.add_argument("icon", type=str, location="json")
         parser.add_argument("icon_background", type=str, location="json")
@@ -431,7 +423,27 @@ class AppSimpleIdListApi(Resource):
         app_service = AppService()
         apps = app_service.get_app_by_ids(args["ids"])
 
-        return cbrain_response(apps), 200
+        return cbrain_response(apps)
+
+
+class UpdateCustomConfigApi(Resource):
+    @login_required
+    def post(self):
+        """
+        更新应用自定义配置
+        {
+            "agentId": [ "id1", "id2" ],
+            "bindStatus": true/false, // 绑定状态，无需更改可以不传，或者null
+            "enable": true/false,     // 启用状态，无需更改可以不传，或者null
+        }
+        """
+        parser = reqparse.RequestParser()
+        parser.add_argument("agentId", type=list, required=True, location="json")
+        parser.add_argument("bindStatus", type=bool, required=False, location="json")
+        parser.add_argument("enable", type=bool, required=False, location="json")
+        args = parser.parse_args()
+        AppService().update_custom_config(args["agentId"], args["bindStatus"], args["enable"])
+        return cbrain_response(None)
 
 
 api.add_resource(AppListApi, "/apps")
@@ -445,4 +457,5 @@ api.add_resource(AppApiStatus, "/apps/<uuid:app_id>/api-enable")
 api.add_resource(AppTraceApi, "/apps/<uuid:app_id>/trace")
 api.add_resource(CbrainCreateAppApi, "/apps/createFromActivity")
 api.add_resource(ListByActivityApi, "/apps/listByActivity")
+api.add_resource(UpdateCustomConfigApi, "/apps/updateCustomConfig")
 api.add_resource(AppSimpleIdListApi, "/apps/listDetails")

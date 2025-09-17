@@ -584,13 +584,23 @@ class AuthConfig(BaseSettings):
     )
 
     CBRAIN_BASE_URL: str = Field(
-        description="C大脑获取用户信息接口",
+        description="C大脑地址",
         default="http://10.230.8.88",
     )
 
     CBRAIN_USER_INFO_URL: str = Field(
         description="C大脑获取用户信息接口",
         default="/cbrain-gateway/cbrain-portal-server/application/userLogin/userInfo",
+    )
+
+    CBRAIN_LOGIN_URL: str = Field(
+        description="C大脑查询登录状态接口",
+        default="/cbrain-gateway/cbrain-auth-server/cbrain-auth/sso/isLogin",
+    )
+
+    CBRAIN_LIST_TENANT_URL: str = Field(
+        description="C大脑租户列表接口",
+        default="/cbrain-gateway/cbrain-portal-server/application/tbtenant/list",
     )
 
     DEFAULT_TENANT_ID: str = Field(

@@ -7,10 +7,6 @@ from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from typing import Any, Optional, cast, List
 
-# 配置日志
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -23,6 +19,7 @@ from extensions.ext_database import db
 from extensions.ext_redis import redis_client, redis_fallback
 from libs.datetime_utils import naive_utc_now
 from libs.helper import RateLimiter, TokenManager
+from libs.oauth import CbrainOAuth
 from libs.passport import PassportService
 from libs.password import compare_password, hash_password, valid_password
 from libs.rsa import generate_key_pair
@@ -70,6 +67,10 @@ from tasks.mail_owner_transfer_task import (
     send_owner_transfer_confirm_task,
 )
 from tasks.mail_reset_password_task import send_reset_password_mail_task
+
+# 配置日志
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class TokenPair(BaseModel):
@@ -899,15 +900,7 @@ class TenantService:
                               .where(Tenant.cbrain_tenant_id.in_(cbrain_tenant_ids), Tenant.is_public == True)
                               .all())
             logging.info(f"现有公共工作空间数量: {len(public_tenants)}")
-            personal_tenants = (
-                db.session.query(Tenant)
-                .join(TenantAccountJoin, Tenant.id == TenantAccountJoin.tenant_id)
-                .where(TenantAccountJoin.account_id == account.id, Tenant.status == TenantStatus.NORMAL,
-                       Tenant.cbrain_tenant_id.in_(cbrain_tenant_ids), Tenant.is_public == False)
-                .all())
-            logging.info(f"现有私人工作空间数量: {len(personal_tenants)}")
             public_tenants_dict = {tenant.cbrain_tenant_id: tenant for tenant in public_tenants}
-            personal_tenants_dict = {tenant.cbrain_tenant_id: tenant for tenant in personal_tenants}
 
             # 如果有C大脑租户信息，优先处理C大脑租户
             for cbrain_tenant_info in cbrain_tenant_list:
@@ -935,27 +928,7 @@ class TenantService:
                     logging.info(f"C大脑租户 {cbrain_tenant_id} 对应的公共工作空间已存在: {existing_public_tenant.id}，加入")
                     TenantService.create_tenant_member(existing_public_tenant, account, role="editor")
 
-                # 个人空间
-                existing_personal_tenant: Tenant = personal_tenants_dict.get(cbrain_tenant_id)
-                if not existing_personal_tenant:
-                    # 创建新的工作空间，绑定C大脑租户ID
-                    logging.info(f"为C大脑租户 {cbrain_tenant_id} ({cbrain_tenant_name}) 创建个人工作空间")
-                    tenant = TenantService.create_tenant(
-                        name=f"{account.name}的{cbrain_tenant_name}工作空间",
-                        is_public=False,
-                        cbrain_tenant_id=cbrain_tenant_id)
-                    # 关联用户为所有者
-                    TenantService.create_tenant_member(tenant, account, role="owner")
-                    tenant_was_created.send(tenant)
-                else:
-                    logging.info(
-                        f"C大脑租户 {cbrain_tenant_id} 对应的个人工作空间已存在: {existing_personal_tenant.id}")
-
             db.session.commit()
-
-            # 最终检查用户的工作空间数量
-            final_tenants = TenantService.get_join_tenants(account)
-            logging.info(f"用户 {account.id} 创建工作空间完成，最终工作空间数量: {len(final_tenants)}")
 
             # 将c大脑租户对应的公共空间设为当前活跃空间
             if environment and environment in public_tenants_dict:
@@ -971,6 +944,36 @@ class TenantService:
             logging.error(f"创建默认工作空间失败: {str(e)}")
             db.session.rollback()
             raise
+
+    @staticmethod
+    def create_and_get_tenant_for_cbrain(environment: str, token: str) -> Tenant:
+        """
+        创建C大脑对应的租户
+        """
+        # 查询已有租户
+        public_tenant = (db.session.query(Tenant)
+                         .where(Tenant.cbrain_tenant_id == environment, Tenant.is_public == True)
+                         .first())
+        if not public_tenant:
+            tenant_list = CbrainOAuth.get_cbrain_tenant_list(token)
+            target_tenant_name = None
+            for tenant in tenant_list:
+                if tenant.get("id") == environment and tenant.get("name"):
+                    target_tenant_name = tenant.get("name")
+                    break
+            if not target_tenant_name:
+                target_tenant_name = f"C大脑租户_{environment}工作空间"
+
+            public_tenant = TenantService.create_tenant(
+                name=target_tenant_name,
+                is_public=True,
+                cbrain_tenant_id=environment
+            )
+            admin_account = (db.session.query(Account).where(
+                Account.id == "905bb081-433a-4b29-8a43-004b5160c3f5").one())
+            TenantService.create_tenant_member(public_tenant, admin_account, role="owner")
+
+        return public_tenant
 
     @staticmethod
     def create_owner_tenant_if_not_exist(
