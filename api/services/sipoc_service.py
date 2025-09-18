@@ -31,8 +31,6 @@ class SipocService:
         :param sipoc_config: sipoc config
         :return:
         """
-        if use_kv and sipoc_config.modelContextKV:
-            return sipoc_config.modelContextKV
         sipoc_kv = {}
         iorcConfig = sipoc_config.modelContext
         if iorcConfig:
@@ -76,57 +74,57 @@ class SipocService:
         print("generate_sipoc_output_kv sipoc_kv:", sipoc_kv)
         return sipoc_kv
 
-    @staticmethod
-    def fillup_sipoc_output_kv(sipoc_config: SipocModelConfig, output_kv: dict) -> SipocModelConfig:
-        """
-        Generate sipoc kv from sipoc config，解析sipoc数据，转化为key，value字典
-        :param sipoc_config: sipoc config
-        :return:
-        """
-        #  TODO
-        if not output_kv or not sipoc_config.modelGenerate:
-            return sipoc_config
-        for outputNode in sipoc_config.modelGenerate.outputNodes:
-            SipocService.fillup_node_kv(outputNode, 'gen_output', output_kv)
-        return sipoc_config
+    # @staticmethod
+    # def fillup_sipoc_output_kv(sipoc_config: SipocModelConfig, output_kv: dict) -> SipocModelConfig:
+    #     """
+    #     Generate sipoc kv from sipoc config，解析sipoc数据，转化为key，value字典
+    #     :param sipoc_config: sipoc config
+    #     :return:
+    #     """
+    #     #  TODO
+    #     if not output_kv or not sipoc_config.modelGenerate:
+    #         return sipoc_config
+    #     for outputNode in sipoc_config.modelGenerate.outputNodes:
+    #         SipocService.fillup_node_kv(outputNode, 'gen_output', output_kv)
+    #     return sipoc_config
 
-    @staticmethod
-    def convert_sipoc_output_kv(user_input_form: str, output_kv: str) -> str:
-        """
-        将sipoc的输出kv，填充到SipocModelConfig对象中
-        """
-
-        if not output_kv or not user_input_form:
-            return ""
-
-        def get_output_json(str):
-            index = str.find("```json")
-            if index != -1:
-                str = str[index + 7:]
-            index = str.find("```")
-            if index != -1:
-                str = str[:index]
-            return str
-        output_kv = get_output_json(output_kv)
-        try:
-            output_kv = json.loads(output_kv)
-        except:
-            print("convert_sipoc_output_kv output_kv:", output_kv)
-            return ""
-        user_input_form = json.loads(user_input_form)
-        print("convert_sipoc_output_kv user_input_form:", user_input_form)
-
-        sipoc_config = None
-        for item in user_input_form:
-            if 'sipoc_config' in item.keys():
-                sipoc_config = SipocModelConfig(**item['sipoc_config'])
-                break
-        print("convert_sipoc_output_kv sipoc_config:", sipoc_config)
-        if not sipoc_config or not sipoc_config.modelGenerate:
-            return ""
-        for outputNode in sipoc_config.modelGenerate.outputNodes:
-            SipocService.fillup_node_kv(outputNode, 'gen_output', output_kv)
-        return ", sipoc_config: " + sipoc_config.model_dump_json()
+    # @staticmethod
+    # def convert_sipoc_output_kv(user_input_form: str, output_kv: str) -> str:
+    #     """
+    #     将sipoc的输出kv，填充到SipocModelConfig对象中
+    #     """
+    #
+    #     if not output_kv or not user_input_form:
+    #         return ""
+    #
+    #     def get_output_json(str):
+    #         index = str.find("```json")
+    #         if index != -1:
+    #             str = str[index + 7:]
+    #         index = str.find("```")
+    #         if index != -1:
+    #             str = str[:index]
+    #         return str
+    #     output_kv = get_output_json(output_kv)
+    #     try:
+    #         output_kv = json.loads(output_kv)
+    #     except:
+    #         print("convert_sipoc_output_kv output_kv:", output_kv)
+    #         return ""
+    #     user_input_form = json.loads(user_input_form)
+    #     print("convert_sipoc_output_kv user_input_form:", user_input_form)
+    #
+    #     sipoc_config = None
+    #     for item in user_input_form:
+    #         if 'sipoc_config' in item.keys():
+    #             sipoc_config = SipocModelConfig(**item['sipoc_config'])
+    #             break
+    #     print("convert_sipoc_output_kv sipoc_config:", sipoc_config)
+    #     if not sipoc_config or not sipoc_config.modelGenerate:
+    #         return ""
+    #     for outputNode in sipoc_config.modelGenerate.outputNodes:
+    #         SipocService.fillup_node_kv(outputNode, 'gen_output', output_kv)
+    #     return ", sipoc_config: " + sipoc_config.model_dump_json()
 
 
     @staticmethod
@@ -159,50 +157,50 @@ class SipocService:
     @staticmethod
     def generate_output_node_kv(nodeObj: NodeObject, prefix: str) -> dict:
         sipoc_kv = {}
-        key = prefix + ':##node##' + nodeObj.label
+        key = prefix + ':' + nodeObj.label
         if nodeObj.property:
             for prop in nodeObj.property:
                 if not prop.name:
                     continue
-                # input:##node##xx_label.##prop##xx_prop
-                key1 = key + '.##prop##' + prop.name
+                # input:xx_label.xx_prop
+                key1 = key + '.' + prop.name
                 sipoc_kv[key1] = ""
         if nodeObj.subNodes:
             for subNode in nodeObj.subNodes:
-                key1 = key + '.##edge##' + subNode.relateEdge + '##' + subNode.label
+                key1 = key + '.' + subNode.relateEdge + '.' + subNode.label
                 if subNode.property:
                     for prop in subNode.property:
                         if not prop.name:
                             continue
-                        # input:##node##xx_label.##edge##xx_edge##xx_label.##prop##xx_prop
-                        key2 = key1 + '.##prop##' + prop.name
+                        # input:xx_label.xx_edge.xx_label.xx_prop
+                        key2 = key1 + '.' + prop.name
                         sipoc_kv[key2] = ""
 
         return sipoc_kv
 
-    @staticmethod
-    def fillup_node_kv(nodeObj: NodeObject, prefix: str, output_kv: dict) -> NodeObject:
-        key = prefix + ':##node##' + nodeObj.label
-        if nodeObj.property:
-            for prop in nodeObj.property:
-                if not prop.name:
-                    continue
-                # input:##node##xx_label.##prop##xx_prop
-                key1 = key + '.##prop##' + prop.name
-                if key1 in output_kv:
-                    prop.value = output_kv[key1]
-        if nodeObj.subNodes:
-            for subNode in nodeObj.subNodes:
-                key1 = key + '.##edge##' + subNode.relateEdge + '##' + subNode.label
-                if subNode.property:
-                    for prop in subNode.property:
-                        if not prop.name:
-                            continue
-                        # input:##node##xx_label.##edge##xx_edge##xx_label.##prop##xx_prop
-                        key2 = key1 + '.##prop##' + prop.name
-                        if key2 in output_kv:
-                            prop.value = output_kv[key2]
-        return nodeObj
+    # @staticmethod
+    # def fillup_node_kv(nodeObj: NodeObject, prefix: str, output_kv: dict) -> NodeObject:
+    #     key = prefix + ':##node##' + nodeObj.label
+    #     if nodeObj.property:
+    #         for prop in nodeObj.property:
+    #             if not prop.name:
+    #                 continue
+    #             # input:##node##xx_label.##prop##xx_prop
+    #             key1 = key + '.##prop##' + prop.name
+    #             if key1 in output_kv:
+    #                 prop.value = output_kv[key1]
+    #     if nodeObj.subNodes:
+    #         for subNode in nodeObj.subNodes:
+    #             key1 = key + '.##edge##' + subNode.relateEdge + '##' + subNode.label
+    #             if subNode.property:
+    #                 for prop in subNode.property:
+    #                     if not prop.name:
+    #                         continue
+    #                     # input:##node##xx_label.##edge##xx_edge##xx_label.##prop##xx_prop
+    #                     key2 = key1 + '.##prop##' + prop.name
+    #                     if key2 in output_kv:
+    #                         prop.value = output_kv[key2]
+    #     return nodeObj
 
     @staticmethod
     def is_file_kv(key: str, value: Any):
@@ -434,3 +432,141 @@ class SipocService:
         except Exception as e:
             print(f"转换失败: {str(e)}")
 
+    @staticmethod
+    def convert_sipoc_output_kv(user_input_form: str, answer: str) -> str:
+        # convert_sipoc_output_kv(user_input_form: str, output_kv: str) -> str:
+        """
+        将sipoc的输出kv，填充到SipocModelConfig对象中
+        """
+        sipoc_config = SipocService.get_sipoc_output_config_from_user_input_form(user_input_form)
+
+        if not sipoc_config or not sipoc_config.modelGenerate:
+            return ""
+
+        output_kv = SipocService.get_output_kv_from_llm_output(answer)
+
+        for outputNode in sipoc_config.modelGenerate.outputNodes:
+            SipocService.fillup_node(outputNode, output_kv)
+
+        return ", sipoc_config: " + sipoc_config.model_dump_json()
+
+    @staticmethod
+    def get_sipoc_output_config_from_user_input_form(user_input_form: str) -> SipocModelConfig:
+        """
+        从user_input_form中提取sipoc_config
+        """
+        user_input_form = json.loads(user_input_form)
+        print("convert_sipoc_output_kv user_input_form:", user_input_form)
+
+        sipoc_config = None
+        for item in user_input_form:
+            if 'sipoc_config' in item.keys():
+                sipoc_config = SipocModelConfig(**item['sipoc_config'])
+                break
+        sipoc_config.modelContext = None
+        return sipoc_config
+
+    @staticmethod
+    def get_output_kv_from_llm_output(answer: str) -> dict:
+        index = answer.find("```KV")
+        if index != -1:
+            answer = answer[index + 7:]
+        index = answer.find("```")
+        if index != -1:
+            answer = answer[:index]
+        lines = answer.split("\n")
+        output_kv = {}
+        for line in lines:
+            if line.find(":") == -1:
+                continue
+            key = line.split(":")[0].strip()
+            value = line.split(":")[1].strip()
+            output_kv[key] = value
+
+        return output_kv
+
+    @staticmethod
+    def fillup_node(nodeObj: NodeObject, output_kv: dict):
+
+        def fillup_node_kv(nodeObj: NodeObject, property_kv: dict):
+            for prop in nodeObj.property:
+                if not prop.name:
+                    continue
+                if prop.name in property_kv:
+                    prop.value = property_kv[prop.name]
+
+        mapdict = {}
+        key = nodeObj.label
+        if nodeObj.property and key in output_kv.keys():
+            fillup_node_kv(nodeObj, output_kv[key])
+
+        if nodeObj.subNodes:
+            for subNode in nodeObj.subNodes:
+                key1 = key + '.' + subNode.relateEdge + '.' + subNode.label
+                mapdict[key1] = subNode
+
+            for k, v in output_kv.items():
+                if k not in mapdict.keys():
+                    continue
+                if isinstance(v, dict):
+                    fillup_node_kv(mapdict[k], v)
+                elif isinstance(v, list) and len(v) > 1:
+                    raw_node = NodeObject(**json.loads(mapdict[k].model_dump_json()))
+                    for i, item in enumerate(v):
+                        if i == 0:
+                            fillup_node_kv(mapdict[k], item)
+                        else:
+                            new_node = NodeObject(**json.loads(raw_node.model_dump_json()))
+                            fillup_node_kv(new_node, item)
+                            nodeObj.subNodes.append(new_node)
+
+
+    @staticmethod
+    def transform_output_kv(output_kv) -> dict:
+        result = {}
+
+        # 处理普通字段（非数组字段）
+        for key, value in output_kv.items():
+            if '[' not in key:  # 非数组字段
+                parts = key.rsplit('.', 1)
+                current = result
+
+                # 遍历除最后一个部分外的所有部分
+                if parts[0] not in current:
+                    current[parts[0]] = {parts[1]: value}
+                else:
+                    current[parts[0]][parts[1]] = value
+
+        # 处理数组字段
+        array_data = {}
+        for key, value in output_kv.items():
+            if '[' in key:  # 数组字段
+                # 提取基础路径和索引
+                base_key = key.split('[')[0]
+                index = int(key.split('[')[1].split(']')[0])
+                field_name = base_key.split('.')[-1]
+
+                # 构建数组项的路径（去掉最后一个字段名）
+                array_path = '.'.join(base_key.split('.')[:-1])
+
+                if array_path not in array_data:
+                    array_data[array_path] = {}
+
+                if index not in array_data[array_path]:
+                    array_data[array_path][index] = {}
+
+                array_data[array_path][index][field_name] = value
+
+        # 将数组数据合并到结果中
+        for k, v in array_data.items():
+            tmp_arr = []
+            for k1, v1 in v.items():
+                tmp_arr.append(v1)
+            if k in result.keys():
+                tmp_arr.insert(0, result[k])
+                result[k] = tmp_arr
+            elif len(tmp_arr) == 1:
+                result[k] = tmp_arr[0]
+            else:
+                result[k] = tmp_arr
+        return result
