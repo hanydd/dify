@@ -131,24 +131,24 @@ class SipocService:
     def generate_node_kv(nodeObj: NodeObject, prefix: str) -> dict:
 
         sipoc_kv = {}
-        key = prefix + ':##node##' + nodeObj.label
+        key = prefix + ':' + nodeObj.label
         if nodeObj.property:
             for prop in nodeObj.property:
                 if not prop.name:
                     continue
-                # input:##node##xx_label.##prop##xx_prop
-                key1 = key + '.##prop##' + prop.name
+                # input:xx_label.xx_prop
+                key1 = key + '.' + prop.name
                 if prop.value:
                     sipoc_kv[key1] = prop.value
         if nodeObj.subNodes:
             for subNode in nodeObj.subNodes:
-                key1 = key + '.##edge##' + subNode.relateEdge + '##' + subNode.label
+                key1 = key + '.' + subNode.relateEdge + '.' + subNode.label
                 if subNode.property:
                     for prop in subNode.property:
                         if not prop.name:
                             continue
-                        # input:##node##xx_label.##edge##xx_edge##xx_label.##prop##xx_prop
-                        key2 = key1 + '.##prop##' + prop.name
+                        # input:xx_label.xx_edge.xx_label.xx_prop
+                        key2 = key1 + '.' + prop.name
                         if prop.value:
                             sipoc_kv[key2] = prop.value
 
