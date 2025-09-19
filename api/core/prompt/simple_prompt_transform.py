@@ -365,13 +365,14 @@ class SimplePromptTransform(PromptTransform):
 
         # 1. 根据场景类型选择基础模板，外部传入的pre_prompt优先于默认模板
         base_template = ""
+        print("scene_type:", scene_type)
         if scene_type == SceneType.GENERATE_DOCUMENT:  # 文档生成场景
             base_template = FILL_DOC_PROMPT_TEMPLATE
         elif scene_type == SceneType.FILL_FORM:  # 表格生成场景
             base_template = FILL_TABLE_PROMPT_TEMPLATE
         else:
             base_template = ""
-        #print("base_template:", base_template)
+        print("base_template:", base_template)
         base_template = self.process_pre_prompt(base_template, user_inputs, inputs, False)
 
 
@@ -387,6 +388,7 @@ class SimplePromptTransform(PromptTransform):
         else:
             # 若pre_prompt不存在，将占位符替换为空字符串
             final_pre_prompt = base_template.replace(placeholder, "")
+        print("get_prompt_template_by_scene_type final_pre_prompt", final_pre_prompt)
 
         # if pre_prompt:
         #     # 去除两端空行后拼接，避免多余空白
@@ -509,6 +511,7 @@ class SimplePromptTransform(PromptTransform):
             return SceneType.UNDEFINED
 
         normalized_str = scene_type_str.lower()
+        print("get_scene_type  normalized_str", normalized_str)
 
         # 尝试转换为SceneType枚举
         try:
